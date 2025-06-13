@@ -1,253 +1,57 @@
-export const categories = [
-  {
-    id: 1,
-    name: "Pizza",
-    image: require("../assets/images/1.jpg"),
-  },
-  {
-    id: 2,
-    name: "Burger",
-    image: require("../assets/images/2.jpg"),
-  },
-  {
-    id: 3,
-    name: "Italian",
-    image: require("../assets/images/3.jpg"),
-  },
-  {
-    id: 4,
-    name: "Chinese",
-    image: require("../assets/images/4.jpg"),
-  },
-  {
-    id: 5,
-    name: "Noodles",
-    image: require("../assets/images/5.jpg"),
-  },
-  {
-    id: 6,
-    name: "Noodles",
-    image: require("../assets/images/5.jpg"),
-  },
-  {
-    id: 7,
-    name: "Noodles",
-    image: require("../assets/images/5.jpg"),
-  },
-  {
-    id: 8,
-    name: "Noodles",
-    image: require("../assets/images/5.jpg"),
-  },
-];
+import { useEffect, useState } from "react";
+import { supabase } from "../constants/supabase";
 
-export const featuredCategories = [
-  {
-    id: 1,
-    title: "Hot Sandiwches",
-    description: "Local fast food corner",
-    products: [
-      {
-        id: 1,
-        name: "Big Bite",
-        image: require("../assets/images/6.jpg"),
-        stars: 4.6,
-        reviews: "4.6k",
-        category: "Fast food",
-        address: "123 Main Street",
-      },
-      {
-        id: 2,
-        name: "Al Baik",
-        image: require("../assets/images/7.jpg"),
-        stars: 4.5,
-        reviews: "5.2k",
-        category: "Fast food",
-        address: "234 Food Street",
-      },
-      {
-        id: 3,
-        name: "Spicy King",
-        image: require("../assets/images/8.jpg"),
-        stars: 4.7,
-        reviews: "5.8k",
-        category: "Fast food",
-        address: "789 Heat Avenue",
-      },
-      {
-        id: 4,
-        name: "Fire Grill",
-        image: require("../assets/images/9.jpg"),
-        stars: 4.2,
-        reviews: "3.9k",
-        category: "Fast food",
-        address: "456 Flame Road",
-      },
-      {
-        id: 5,
-        name: "BBQ House",
-        image: require("../assets/images/10.jpg"),
-        stars: 4.8,
-        reviews: "6.0k",
-        category: "Fast food",
-        address: "101 BBQ Street",
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Cold Sandiwches and Ships",
-    description: "Crispy and juicy fried chicken",
-    products: [
-      {
-        id: 6,
-        name: "KFC",
-        image: require("../assets/images/11.jpg"),
-        stars: 4.7,
-        reviews: "6.1k",
-        category: "Chicken",
-        address: "456 Chicken Avenue",
-      },
-      {
-        id: 7,
-        name: "Popeyes",
-        image: require("../assets/images/12.jpg"),
-        stars: 4.5,
-        reviews: "5.4k",
-        category: "Chicken",
-        address: "789 Fried Road",
-      },
-      {
-        id: 8,
-        name: "Chicken King",
-        image: require("../assets/images/13.jpg"),
-        stars: 4.6,
-        reviews: "5.9k",
-        category: "Chicken",
-        address: "321 Tenders Street",
-      },
-      {
-        id: 9,
-        name: "Crunchy Wings",
-        image: require("../assets/images/14.jpg"),
-        stars: 4.4,
-        reviews: "4.5k",
-        category: "Chicken",
-        address: "123 Wing Road",
-      },
-      {
-        id: 10,
-        name: "Golden Crispy",
-        image: require("../assets/images/15.jpg"),
-        stars: 4.8,
-        reviews: "6.7k",
-        category: "Chicken",
-        address: "987 Drumstick Lane",
-      },
-    ],
-  },
-  {
-    id: 3,
-    title: "Wraps",
-    description: "Delicious grilled burgers and crispy fries",
-    products: [
-      {
-        id: 11,
-        name: "McDonald's",
-        image: require("../assets/images/16.jpg"),
-        stars: 4.3,
-        reviews: "4.8k",
-        category: "Burgers",
-        address: "567 Burger Lane",
-      },
-      {
-        id: 12,
-        name: "Burger King",
-        image: require("../assets/images/17.jpg"),
-        stars: 4.2,
-        reviews: "5.5k",
-        category: "Burgers",
-        address: "678 Grill Street",
-      },
-      {
-        id: 13,
-        name: "Shake Shack",
-        image: require("../assets/images/6.jpg"),
-        stars: 4.7,
-        reviews: "3.8k",
-        category: "Burgers",
-        address: "789 Shake Street",
-      },
-      {
-        id: 14,
-        name: "Five Guys",
-        image: require("../assets/images/7.jpg"),
-        stars: 4.5,
-        reviews: "4.9k",
-        category: "Burgers",
-        address: "890 Fry Lane",
-      },
-      {
-        id: 15,
-        name: "In-N-Out",
-        image: require("../assets/images/8.jpg"),
-        stars: 4.8,
-        reviews: "5.3k",
-        category: "Burgers",
-        address: "901 Animal Street",
-      },
-    ],
-  },
-  {
-    id: 4,
-    title: "Hot Sandwiches Combos",
-    description: "Fresh seafood dishes",
-    products: [
-      {
-        id: 16,
-        name: "Ocean Bites",
-        image: require("../assets/images/9.jpg"),
-        stars: 4.5,
-        reviews: "2.9k",
-        category: "Seafood",
-        address: "789 Ocean Avenue",
-      },
-      {
-        id: 17,
-        name: "Fisherman's Wharf",
-        image: require("../assets/images/10.jpg"),
-        stars: 4.8,
-        reviews: "3.4k",
-        category: "Seafood",
-        address: "890 Fisher Street",
-      },
-      {
-        id: 18,
-        name: "Lobster Bay",
-        image: require("../assets/images/11.jpg"),
-        stars: 4.9,
-        reviews: "4.5k",
-        category: "Seafood",
-        address: "678 Crab Road",
-      },
-      {
-        id: 19,
-        name: "Salmon House",
-        image: require("../assets/images/12.jpg"),
-        stars: 4.7,
-        reviews: "3.8k",
-        category: "Seafood",
-        address: "345 Fish Avenue",
-      },
-      {
-        id: 20,
-        name: "Shrimp Shack",
-        image: require("../assets/images/13.jpg"),
-        stars: 4.6,
-        reviews: "3.5k",
-        category: "Seafood",
-        address: "123 Shrimp Street",
-      },
-    ],
-  },
-];
+export const useCategories = () => {
+  const [categories, setCategories] = useState([]);
+
+  const fetchCategories = async () => {
+    const { data, error } = await supabase.from("Categories").select("*");
+    if (!error) setCategories(data);
+  };
+
+  useEffect(() => {
+    fetchCategories();
+    const subscription = supabase
+      .channel("public:Categories")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Categories" },
+        () => fetchCategories()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+
+  return categories;
+};
+
+export const useProducts = () => {
+  const [products, setProducts] = useState([]);
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from("Products").select("*");
+    if (!error) setProducts(data);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+
+    const subscription = supabase
+      .channel("public:Products")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "Products" },
+        () => fetchProducts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, []);
+
+  return products;
+};

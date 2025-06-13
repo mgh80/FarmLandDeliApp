@@ -6,20 +6,21 @@ import {
   TextInput,
   Modal,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Icon from "react-native-feather";
-import { ScrollView } from "react-native";
 import Categories from "../components/categories";
 import FeaturedRow from "../components/featuredRow";
-import { featuredCategories } from "../constants";
-import { supabase } from "../constants/supabase";
 import { useNavigation } from "@react-navigation/native";
+import { supabase } from "../constants/supabase";
+import { useProducts } from "../constants"; // 🟦 Hook para obtener productos en tiempo real o estático
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const [showSidebar, setShowSidebar] = useState(false);
   const [pressedIcon, setPressedIcon] = useState(null);
+  const products = useProducts(); // 🟢 Productos desde Supabase
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -28,7 +29,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
-      {/* SEARCH BAR */}
+      {/* Search bar */}
       <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
         <View
           style={{
@@ -49,23 +50,22 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* MAIN SCROLL */}
+      {/* Content */}
       <ScrollView
         style={{ marginTop: 10 }}
         showsVerticalScrollIndicator={false}
       >
         <Categories />
-        {featuredCategories.map((item, index) => (
+        {Array.isArray(products) && products.length > 0 && (
           <FeaturedRow
-            key={index}
-            title={item.title}
-            description={item.description}
-            products={item.products}
+            title="Productos"
+            description="Los más recientes"
+            products={products}
           />
-        ))}
+        )}
       </ScrollView>
 
-      {/* 🔻 Bottom Navigation */}
+      {/* Bottom nav */}
       <View
         style={{
           flexDirection: "row",
@@ -77,7 +77,6 @@ export default function HomeScreen() {
           backgroundColor: "#fff",
         }}
       >
-        {/* Home */}
         <Pressable
           onPressIn={() => setPressedIcon("home")}
           onPressOut={() => setPressedIcon(null)}
@@ -89,7 +88,6 @@ export default function HomeScreen() {
           />
         </Pressable>
 
-        {/* Cart */}
         <Pressable
           onPressIn={() => setPressedIcon("cart")}
           onPressOut={() => setPressedIcon(null)}
@@ -101,7 +99,6 @@ export default function HomeScreen() {
           />
         </Pressable>
 
-        {/* Profile */}
         <Pressable
           onPressIn={() => setPressedIcon("profile")}
           onPressOut={() => setPressedIcon(null)}
@@ -115,7 +112,7 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      {/* 📦 Sidebar / Modal */}
+      {/* Sidebar */}
       <Modal
         visible={showSidebar}
         animationType="slide"
@@ -145,7 +142,6 @@ export default function HomeScreen() {
             >
               Profile
             </Text>
-
             <TouchableOpacity
               onPress={handleLogout}
               style={{
@@ -165,7 +161,6 @@ export default function HomeScreen() {
                 Logout
               </Text>
             </TouchableOpacity>
-
             <Pressable
               onPress={() => setShowSidebar(false)}
               style={{ marginTop: 15 }}

@@ -1,32 +1,41 @@
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import React, { useState } from "react";
-import { categories } from "../constants";
+import { useCategories } from "../constants"; // ✅ Hook funcional
+// import { supabase } from "../constants/supabase"; ❌ Ya no es necesario aquí
 
 export default function Categories() {
+  const categories = useCategories(); // ✅ Datos en tiempo real
   const [activeCategory, setActiveCategory] = useState(null);
+
   return (
-    <View className="mt-4">
+    <View style={{ marginTop: 16 }}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="overflow-visible"
         contentContainerStyle={{
           paddingHorizontal: 15,
-          gap: 15, // ✅ Espaciado horizontal entre elementos
+          gap: 15,
         }}
       >
         {categories.map((category, index) => {
-          let isActive = (category.id = activeCategory);
-          let btnClass = isActive ? " bg-gray-600" : " bg-gray-200";
-          let textClass = isActive
-            ? " fonr-semibold text-gray-800"
-            : "text-gray-500";
+          const isActive = category.Id === activeCategory;
+          const bgColor = isActive ? "#4B5563" : "#E5E7EB";
+          const textColor = isActive ? "#1F2937" : "#6B7280";
+
           return (
-            <View key={index} className="flex justify-center items-center mr-4">
-              {/* 🏷️ Contenedor con fondo gris y borde redondeado */}
+            <View key={index} style={{ alignItems: "center", marginRight: 16 }}>
               <TouchableOpacity
-                onPress={() => setActiveCategory(category.id)}
-                className={"p-2 rounded-full bg-gray-100 shadow-md" + btnClass}
+                onPress={() => setActiveCategory(category.Id)}
+                style={{
+                  padding: 8,
+                  borderRadius: 100,
+                  backgroundColor: bgColor,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 1.41,
+                  elevation: 2,
+                }}
               >
                 <Image
                   style={{
@@ -35,11 +44,19 @@ export default function Categories() {
                     borderRadius: 25,
                     backgroundColor: "white",
                   }}
-                  source={category.image}
+                  source={require("../assets/images/1.jpg")}
                 />
               </TouchableOpacity>
-              {/* 📝 Texto centrado debajo */}
-              <Text className={"text-sm" + textClass}>{category.name}</Text>
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: textColor,
+                  fontWeight: isActive ? "600" : "400",
+                  marginTop: 4,
+                }}
+              >
+                {category.Name}
+              </Text>
             </View>
           );
         })}
