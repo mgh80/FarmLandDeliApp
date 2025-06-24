@@ -14,13 +14,15 @@ import Categories from "../components/categories";
 import FeaturedRow from "../components/featuredRow";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../constants/supabase";
-import { useProducts } from "../constants"; // 🟦 Hook para obtener productos en tiempo real o estático
+import { useProducts } from "../constants";
+import { useCart } from "../context/CartContext";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const { getTotalItems } = useCart();
   const [showSidebar, setShowSidebar] = useState(false);
   const [pressedIcon, setPressedIcon] = useState(null);
-  const products = useProducts(); // 🟢 Productos desde Supabase
+  const products = useProducts();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -89,14 +91,38 @@ export default function HomeScreen() {
         </Pressable>
 
         <Pressable
+          onPress={() => navigation.navigate("Cart")}
           onPressIn={() => setPressedIcon("cart")}
           onPressOut={() => setPressedIcon(null)}
+          style={{ position: "relative" }}
         >
           <Icon.ShoppingCart
-            width={24}
-            height={24}
+            width={28}
+            height={28}
             stroke={pressedIcon === "cart" ? "#ff6347" : "gray"}
           />
+          {getTotalItems() > 0 && (
+            <View
+              style={{
+                position: "absolute",
+                right: -6,
+                top: -6,
+                backgroundColor: "red",
+                borderRadius: 10,
+                paddingHorizontal: 5,
+                paddingVertical: 1,
+                minWidth: 18,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text
+                style={{ color: "white", fontSize: 12, fontWeight: "bold" }}
+              >
+                {getTotalItems()}
+              </Text>
+            </View>
+          )}
         </Pressable>
 
         <Pressable

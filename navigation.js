@@ -7,9 +7,10 @@ import HomeScreen from "./screens/HomeScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import Products from "./screens/Products";
 import LoginScreen from "./screens/LoginScreen";
+import CartScreen from "./screens/CartScreen";
 
 const linking = {
-  prefixes: ["http://localhost:8081"], // o tu dominio
+  prefixes: ["http://localhost:8081"],
   config: {
     screens: {
       Home: "Home",
@@ -32,6 +33,7 @@ export default function Navigation() {
         <Stack.Screen name="Register" component={RegisterScreen}></Stack.Screen>
         <Stack.Screen name="Home" component={HomeScreen}></Stack.Screen>
         <Stack.Screen name="Products" component={Products}></Stack.Screen>
+        <Stack.Screen name="Cart" component={CartScreen}></Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

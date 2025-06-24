@@ -33,7 +33,14 @@ export const useProducts = () => {
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("Products").select("*");
-    if (!error) setProducts(data);
+    if (!error && data) {
+      // Normaliza los campos
+      const transformed = data.map((item) => ({
+        ...item,
+        id: item.Id,
+      }));
+      setProducts(transformed);
+    }
   };
 
   useEffect(() => {

@@ -3,12 +3,14 @@ import React, { useState } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Icon from "react-native-feather";
 import { themeColors } from "../theme";
+import { useCart } from "../context/CartContext";
 
 export default function Products() {
   const { params } = useRoute();
   const navigation = useNavigation();
+  const { addToCart } = useCart();
   let item = params;
-
+  console.log("🧩 Datos del producto:", item);
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(item.price || 10);
 
@@ -27,7 +29,12 @@ export default function Products() {
       >
         {/* Imagen principal */}
         <View className="relative">
-          <Image className="w-full h-72" source={item.image} />
+          <Image
+            source={{ uri: item.image }}
+            style={{ width: "100%", height: 280 }}
+            resizeMode="cover"
+          />
+
           {/* Botón de regreso */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -109,13 +116,14 @@ export default function Products() {
           >
             {/* Imagen del producto */}
             <Image
-              source={item.image}
+              source={{ uri: item.image }}
               style={{
                 width: 70,
                 height: 70,
                 borderRadius: 15,
                 marginRight: 15,
               }}
+              resizeMode="cover"
             />
 
             {/* Nombre y precio */}
@@ -164,10 +172,23 @@ export default function Products() {
       </ScrollView>
 
       {/* 🔥 Botón View Cart - SIEMPRE FIJO EN LA PARTE INFERIOR */}
-      <View
+      <TouchableOpacity
+        onPress={() => {
+          addToCart(
+            {
+              id: item.id,
+              name: item.name,
+              image: item.image,
+              price: item.price,
+              description: item.description,
+            },
+            quantity
+          );
+          navigation.goBack();
+        }}
         style={{
           position: "absolute",
-          bottom: 20, // ✅ Se sube un poco con margin
+          bottom: 20,
           left: 20,
           right: 20,
           backgroundColor: "#FFA500",
@@ -177,7 +198,7 @@ export default function Products() {
           justifyContent: "space-between",
           padding: 15,
           elevation: 5,
-          marginBottom: 20, // ✅ Esto sube el botón
+          marginBottom: 20,
         }}
       >
         {/* Cantidad */}
@@ -196,16 +217,16 @@ export default function Products() {
           </Text>
         </View>
 
-        {/* Botón de "View Cart" */}
+        {/* Texto */}
         <Text style={{ fontSize: 18, fontWeight: "bold", color: "white" }}>
-          View Cart
+          Add Cart
         </Text>
 
         {/* Precio Total */}
         <Text style={{ fontSize: 18, fontWeight: "bold", color: "white" }}>
           ${totalPrice}
         </Text>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }

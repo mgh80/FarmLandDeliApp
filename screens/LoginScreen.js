@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,10 +11,13 @@ import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../constants/supabase";
 import Toast from "react-native-toast-message";
 import * as AuthSession from "expo-auth-session";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import Icon from "react-native-vector-icons/Feather";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // ✅ importante
 
   const handleGoogleLogin = async () => {
     const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
@@ -43,7 +46,6 @@ const LoginScreen = () => {
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
           const user = session.user;
-          console.log("Saving user to Supabase:", user);
 
           const { error: upsertError } = await supabase.from("Users").upsert({
             id: user.id,
@@ -84,18 +86,31 @@ const LoginScreen = () => {
       />
       <Text style={styles.title}>Hello!</Text>
 
-      {/* Aquí iría tu formulario tradicional si lo deseas */}
       <TextInput
         style={styles.input}
         placeholder="Email"
         placeholderTextColor="#999"
+        value={email}
+        onChangeText={setEmail}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        placeholderTextColor="#999"
-      />
+
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Password"
+          secureTextEntry={!showPassword}
+          placeholderTextColor="#999"
+          value={password}
+          onChangeText={setPassword}
+        />
+        <Pressable onPress={() => setShowPassword(!showPassword)}>
+          <Icon
+            name={showPassword ? "eye-off" : "eye"}
+            size={20}
+            color="#999"
+          />
+        </Pressable>
+      </View>
 
       <Pressable
         style={styles.button}
@@ -149,6 +164,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     backgroundColor: "#f9f9f9",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "90%",
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    backgroundColor: "#f9f9f9",
+  },
+  passwordInput: {
+    flex: 1,
+    color: "#000",
   },
   button: {
     width: "90%",
