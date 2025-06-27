@@ -60,8 +60,8 @@ export default function HomeScreen() {
         <Categories />
         {Array.isArray(products) && products.length > 0 && (
           <FeaturedRow
-            title="Productos"
-            description="Los más recientes"
+            title="Products"
+            description="The most recent"
             products={products}
           />
         )}

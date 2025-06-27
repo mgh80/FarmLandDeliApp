@@ -33,6 +33,8 @@ export default function CartScreen({ navigation }) {
     }
 
     const orderNumber = generateOrderNumber();
+    const total = getTotalPrice();
+    const earnedPoints = Math.floor(total);
 
     const orderRows = items.map((item) => ({
       userid: user.id,
@@ -44,28 +46,58 @@ export default function CartScreen({ navigation }) {
       ordernumber: orderNumber,
     }));
 
-    const { error } = await supabase.from("Orders").insert(orderRows);
+    const { error: orderError } = await supabase
+      .from("Orders")
+      .insert(orderRows);
 
-    if (error) {
-      console.error("❌ Error al guardar la orden:", error);
+    if (orderError) {
+      console.error("❌ Error al guardar la orden:", orderError);
       Toast.show({
         type: "error",
         text1: "❌ Error al guardar la orden",
-        text2: error.message,
+        text2: orderError.message,
       });
       return false;
     }
 
-    return orderNumber;
+    // 🔄 Obtener puntos actuales del usuario
+    const { data: userData, error: fetchUserError } = await supabase
+      .from("Users")
+      .select("points")
+      .eq("id", user.id)
+      .single();
+
+    if (fetchUserError) {
+      console.error("❌ No se pudieron obtener los puntos:", fetchUserError);
+      return false;
+    }
+
+    const currentPoints = userData?.points || 0;
+    const newTotalPoints = currentPoints + earnedPoints;
+
+    // 🔼 Actualizar puntos acumulados en Users
+    const { error: updateError } = await supabase
+      .from("Users")
+      .update({ points: newTotalPoints })
+      .eq("id", user.id);
+
+    if (updateError) {
+      console.error("❌ No se pudieron actualizar los puntos:", updateError);
+      return false;
+    }
+
+    return { orderNumber, earnedPoints };
   };
 
   const handleCheckout = async () => {
-    const total = getTotalPrice();
-    const orderNumber = await saveOrderOnSupabase(cartItems, total);
+    const result = await saveOrderOnSupabase(cartItems);
 
-    if (orderNumber) {
+    if (result) {
       clearCart();
-      navigation.replace("OrderConfirmation", { orderNumber }); // ✅ Mostrar confirmación
+      navigation.replace("OrderConfirmation", {
+        orderNumber: result.orderNumber,
+        points: result.earnedPoints,
+      });
     }
   };
 
