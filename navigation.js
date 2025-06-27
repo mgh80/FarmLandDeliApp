@@ -8,6 +8,7 @@ import RegisterScreen from "./screens/RegisterScreen";
 import Products from "./screens/Products";
 import LoginScreen from "./screens/LoginScreen";
 import CartScreen from "./screens/CartScreen";
+import OrderConfirmationScreen from "./screens/OrderConfirmationScreen";
 
 const linking = {
   prefixes: ["http://localhost:8081"],
@@ -34,6 +35,10 @@ export default function Navigation() {
         <Stack.Screen name="Home" component={HomeScreen}></Stack.Screen>
         <Stack.Screen name="Products" component={Products}></Stack.Screen>
         <Stack.Screen name="Cart" component={CartScreen}></Stack.Screen>
+        <Stack.Screen
+          name="OrderConfirmation"
+          component={OrderConfirmationScreen}
+        ></Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

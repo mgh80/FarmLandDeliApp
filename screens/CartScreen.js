@@ -9,6 +9,14 @@ export default function CartScreen({ navigation }) {
   const { cartItems, removeFromCart, getTotalItems, getTotalPrice, clearCart } =
     useCart();
 
+  // 🔢 Generar número de orden con formato: ORD-YYYYMMDD-XXXX
+  const generateOrderNumber = () => {
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+    const randomPart = Math.floor(1000 + Math.random() * 9000); // número aleatorio 1000–9999
+    return `ORD-${datePart}-${randomPart}`;
+  };
+
   const saveOrderOnSupabase = async (items) => {
     const {
       data: { user },
@@ -23,7 +31,8 @@ export default function CartScreen({ navigation }) {
       });
       return false;
     }
-    console.log("🛒 cartItems:", items);
+
+    const orderNumber = generateOrderNumber();
 
     const orderRows = items.map((item) => ({
       userid: user.id,
@@ -32,99 +41,31 @@ export default function CartScreen({ navigation }) {
       price: item.price,
       statusid: 1,
       date: new Date().toISOString(),
+      ordernumber: orderNumber,
     }));
 
     const { error } = await supabase.from("Orders").insert(orderRows);
 
     if (error) {
-      console.error("❌ Error saving the order:", error);
+      console.error("❌ Error al guardar la orden:", error);
       Toast.show({
         type: "error",
-        text1: "❌ Error saving the order",
+        text1: "❌ Error al guardar la orden",
         text2: error.message,
       });
       return false;
     }
 
-    return true;
+    return orderNumber;
   };
-
-  //     const {
-  //       data: { user },
-  //       error: userError,
-  //     } = await supabase.auth.getUser();
-
-  //     if (userError || !user) {
-  //       Toast.show({
-  //         type: "error",
-  //         text1: "🔒 Autenticación requerida",
-  //         text2: "Debes iniciar sesión para realizar un pedido.",
-  //       });
-  //       return false;
-  //     }
-
-  //     // 1. Insertar la orden
-  //     const { data: orderData, error: orderError } = await supabase
-  //       .from("Orders")
-  //       .insert([
-  //         {
-  //           userid: user.id,
-  //           StatusId: 1,
-  //           Date: new Date().toISOString(),
-  //           Total: total,
-  //         },
-  //       ])
-  //       .select()
-  //       .single();
-
-  //     if (orderError || !orderData) {
-  //       console.error("❌ Error saving the order:", orderError);
-  //       Toast.show({
-  //         type: "error",
-  //         text1: "❌ Error saving the order",
-  //         text2: orderError?.message || "No se pudo registrar la orden.",
-  //       });
-  //       return false;
-  //     }
-
-  //     const orderId = orderData.id;
-
-  //     // 2. Insertar los OrderItems
-  //     const itemsData = items.map((item) => ({
-  //       OrderId: orderId,
-  //       ProductId: item.id,
-  //       Quantity: item.quantity,
-  //       Price: item.price,
-  //     }));
-
-  //     const { error: itemsError } = await supabase
-  //       .from("OrderItems")
-  //       .insert(itemsData);
-
-  //     if (itemsError) {
-  //       console.error("❌ Error al guardar los detalles:", itemsError);
-  //       Toast.show({
-  //         type: "error",
-  //         text1: "❌ Error al guardar productos",
-  //         text2: itemsError.message,
-  //       });
-  //       return false;
-  //     }
-
-  //     return true;
-  //   };
 
   const handleCheckout = async () => {
     const total = getTotalPrice();
-    const success = await saveOrderOnSupabase(cartItems, total);
+    const orderNumber = await saveOrderOnSupabase(cartItems, total);
 
-    if (success) {
-      Toast.show({
-        type: "success",
-        text1: "✅ Pedido realizado",
-        text2: "Tu orden ha sido registrada correctamente.",
-      });
+    if (orderNumber) {
       clearCart();
+      navigation.replace("OrderConfirmation", { orderNumber }); // ✅ Mostrar confirmación
     }
   };
 
