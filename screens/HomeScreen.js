@@ -20,9 +20,11 @@ import { useCart } from "../context/CartContext";
 export default function HomeScreen() {
   const navigation = useNavigation();
   const { getTotalItems } = useCart();
+
   const [showSidebar, setShowSidebar] = useState(false);
   const [pressedIcon, setPressedIcon] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [searchText, setSearchText] = useState("");
 
   const products = useProducts();
   const categories = useCategories();
@@ -34,28 +36,40 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
-      {/* Search bar */}
-      <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+      {/* Buscador */}
+      <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            borderColor: "lightgray",
-            borderWidth: 1,
-            borderRadius: 30,
-            padding: 10,
-            backgroundColor: "#f1f1f1",
+            backgroundColor: "#f2f2f2",
+            borderRadius: 25,
+            paddingHorizontal: 15,
+            paddingVertical: 8,
           }}
         >
-          <Icon.Search width={20} height={20} stroke="gray" />
+          <Icon.Search width={20} height={20} stroke="#6B7280" />
           <TextInput
-            placeholder="Products"
-            style={{ marginLeft: 10, flex: 1 }}
+            placeholder="Search products"
+            placeholderTextColor="#9CA3AF"
+            style={{
+              flex: 1,
+              marginLeft: 10,
+              fontSize: 16,
+              color: "#1F2937",
+            }}
+            value={searchText}
+            onChangeText={setSearchText}
           />
+          {searchText !== "" && (
+            <TouchableOpacity onPress={() => setSearchText("")}>
+              <Icon.X width={20} height={20} stroke="#9CA3AF" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
-      {/* Content */}
+      {/* Contenido */}
       <ScrollView
         style={{ marginTop: 10 }}
         showsVerticalScrollIndicator={false}
@@ -65,29 +79,32 @@ export default function HomeScreen() {
           setActiveCategory={setActiveCategory}
         />
 
-        {/* Fila por categoría */}
+        {/* Mostrar filas por categoría */}
         {categories.map((cat) => {
-          const prodsInCat = products.filter((p) => p.CategoryId === cat.Id);
+          const productsInCategory = products.filter(
+            (p) => p.CategoryId === cat.Id
+          );
 
-          // si hay filtro y no es esta categoría, no la muestres
-          if (activeCategory && cat.Name !== activeCategory) {
-            return null;
-          }
+          if (activeCategory && cat.Name !== activeCategory) return null;
+
+          const filteredProducts = productsInCategory.filter((p) =>
+            p.Name.toLowerCase().includes(searchText.toLowerCase())
+          );
+
+          if (filteredProducts.length === 0) return null;
 
           return (
-            prodsInCat.length > 0 && (
-              <FeaturedRow
-                key={cat.Id}
-                title={cat.Name}
-                description={`${prodsInCat.length} productos`}
-                products={prodsInCat}
-              />
-            )
+            <FeaturedRow
+              key={cat.Id}
+              title={cat.Name}
+              description={`${filteredProducts.length} products`}
+              products={filteredProducts}
+            />
           );
         })}
       </ScrollView>
 
-      {/* Bottom nav */}
+      {/* Barra de navegación inferior */}
       <View
         style={{
           flexDirection: "row",
@@ -95,39 +112,52 @@ export default function HomeScreen() {
           alignItems: "center",
           paddingVertical: 10,
           borderTopWidth: 1,
-          borderColor: "#eee",
+          borderColor: "#e5e7eb",
           backgroundColor: "#fff",
         }}
       >
+        {/* Inicio */}
         <Pressable
-          onPressIn={() => setPressedIcon("home")}
+          onPressIn={() => setPressedIcon("Home")}
           onPressOut={() => setPressedIcon(null)}
+          style={{ alignItems: "center" }}
         >
           <Icon.Home
-            width={28}
-            height={28}
-            stroke={pressedIcon === "home" ? "#ff6347" : "gray"}
+            width={26}
+            height={26}
+            stroke={pressedIcon === "home" ? "#1F2937" : "#6B7280"}
           />
+          <Text
+            style={{
+              fontSize: 10,
+              marginTop: 2,
+              color: pressedIcon === "home" ? "#1F2937" : "#6B7280",
+              fontWeight: pressedIcon === "home" ? "600" : "400",
+            }}
+          >
+            Home
+          </Text>
         </Pressable>
 
+        {/* Carrito */}
         <Pressable
           onPress={() => navigation.navigate("Cart")}
           onPressIn={() => setPressedIcon("cart")}
           onPressOut={() => setPressedIcon(null)}
-          style={{ position: "relative" }}
+          style={{ position: "relative", alignItems: "center" }}
         >
           <Icon.ShoppingCart
-            width={28}
-            height={28}
-            stroke={pressedIcon === "cart" ? "#ff6347" : "gray"}
+            width={26}
+            height={26}
+            stroke={pressedIcon === "cart" ? "#1F2937" : "#6B7280"}
           />
           {getTotalItems() > 0 && (
             <View
               style={{
                 position: "absolute",
-                right: -6,
-                top: -6,
-                backgroundColor: "red",
+                right: -8,
+                top: -4,
+                backgroundColor: "#1F2937",
                 borderRadius: 10,
                 paddingHorizontal: 5,
                 paddingVertical: 1,
@@ -137,28 +167,50 @@ export default function HomeScreen() {
               }}
             >
               <Text
-                style={{ color: "white", fontSize: 12, fontWeight: "bold" }}
+                style={{ color: "white", fontSize: 10, fontWeight: "bold" }}
               >
                 {getTotalItems()}
               </Text>
             </View>
           )}
+          <Text
+            style={{
+              fontSize: 10,
+              marginTop: 2,
+              color: pressedIcon === "cart" ? "#1F2937" : "#6B7280",
+              fontWeight: pressedIcon === "cart" ? "600" : "400",
+            }}
+          >
+            Cart
+          </Text>
         </Pressable>
 
+        {/* Perfil */}
         <Pressable
           onPressIn={() => setPressedIcon("profile")}
           onPressOut={() => setPressedIcon(null)}
           onPress={() => setShowSidebar(true)}
+          style={{ alignItems: "center" }}
         >
           <Icon.User
             width={24}
             height={24}
-            stroke={pressedIcon === "profile" ? "#ff6347" : "gray"}
+            stroke={pressedIcon === "profile" ? "#1F2937" : "#6B7280"}
           />
+          <Text
+            style={{
+              fontSize: 10,
+              marginTop: 2,
+              color: pressedIcon === "profile" ? "#1F2937" : "#6B7280",
+              fontWeight: pressedIcon === "profile" ? "600" : "400",
+            }}
+          >
+            Profile
+          </Text>
         </Pressable>
       </View>
 
-      {/* Sidebar */}
+      {/* Sidebar lateral */}
       <Modal
         visible={showSidebar}
         animationType="slide"
@@ -186,8 +238,33 @@ export default function HomeScreen() {
             <Text
               style={{ fontSize: 22, fontWeight: "bold", marginBottom: 30 }}
             >
-              Profile
+              Perfil
             </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowSidebar(false);
+                navigation.navigate("OrderHistory");
+              }}
+              style={{ paddingVertical: 10 }}
+            >
+              <Text style={{ fontSize: 16, color: "#1F2937" }}>
+                🧾 Order History
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowSidebar(false);
+                navigation.navigate("Points");
+              }}
+              style={{ paddingVertical: 10 }}
+            >
+              <Text style={{ fontSize: 16, color: "#1F2937" }}>
+                ⭐ My Points
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               onPress={handleLogout}
               style={{

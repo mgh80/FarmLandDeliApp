@@ -9,11 +9,10 @@ export default function CartScreen({ navigation }) {
   const { cartItems, removeFromCart, getTotalItems, getTotalPrice, clearCart } =
     useCart();
 
-  // 🔢 Generar número de orden con formato: ORD-YYYYMMDD-XXXX
   const generateOrderNumber = () => {
     const now = new Date();
-    const datePart = now.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
-    const randomPart = Math.floor(1000 + Math.random() * 9000); // número aleatorio 1000–9999
+    const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.floor(1000 + Math.random() * 9000);
     return `ORD-${datePart}-${randomPart}`;
   };
 
@@ -60,7 +59,6 @@ export default function CartScreen({ navigation }) {
       return false;
     }
 
-    // 🔄 Obtener puntos actuales del usuario
     const { data: userData, error: fetchUserError } = await supabase
       .from("Users")
       .select("points")
@@ -75,7 +73,6 @@ export default function CartScreen({ navigation }) {
     const currentPoints = userData?.points || 0;
     const newTotalPoints = currentPoints + earnedPoints;
 
-    // 🔼 Actualizar puntos acumulados en Users
     const { error: updateError } = await supabase
       .from("Users")
       .update({ points: newTotalPoints })
@@ -125,61 +122,87 @@ export default function CartScreen({ navigation }) {
         </Text>
       </View>
       <TouchableOpacity onPress={() => removeFromCart(item.id)}>
-        <Icon.Trash stroke="red" width={22} height={22} />
+        <Icon.Trash stroke="#FFA500" width={22} height={22} />
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <View style={{ flex: 1, padding: 20, backgroundColor: "#F3F4F6" }}>
+    <View style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
-        Cart ({getTotalItems()} product{getTotalItems() !== 1 ? "s" : ""})
+        Carrito ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
       </Text>
 
       {cartItems.length === 0 ? (
-        <Text>Your cart is empty.</Text>
-      ) : (
-        <FlatList
-          data={cartItems}
-          keyExtractor={(item) => item.id?.toString() || item.name}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 100 }}
-        />
-      )}
-
-      {cartItems.length > 0 && (
         <View
           style={{
-            position: "absolute",
-            bottom: 20,
-            left: 20,
-            right: 20,
-            backgroundColor: "#FFA500",
-            borderRadius: 20,
-            padding: 15,
+            flex: 1,
             alignItems: "center",
-            elevation: 5,
+            justifyContent: "center",
+            marginTop: -50,
           }}
         >
-          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-            Total: ${getTotalPrice()}
+          <Icon.ShoppingBag width={90} height={90} stroke="#9CA3AF" />
+          <Text style={{ marginTop: 20, fontSize: 18, color: "#6B7280" }}>
+            Your cart is empty.
           </Text>
-
           <TouchableOpacity
-            onPress={handleCheckout}
+            onPress={() => navigation.navigate("Home")}
             style={{
-              marginTop: 10,
-              backgroundColor: "white",
-              borderRadius: 10,
+              marginTop: 30,
+              backgroundColor: "#FFA500",
+              paddingHorizontal: 25,
               paddingVertical: 10,
-              paddingHorizontal: 20,
+              borderRadius: 8,
             }}
           >
-            <Text style={{ color: "#FFA500", fontWeight: "bold" }}>
-              Go to pay
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+              Go to home
             </Text>
           </TouchableOpacity>
         </View>
+      ) : (
+        <>
+          <FlatList
+            data={cartItems}
+            keyExtractor={(item) => item.id?.toString() || item.name}
+            renderItem={renderItem}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          />
+
+          <View
+            style={{
+              position: "absolute",
+              bottom: 20,
+              left: 20,
+              right: 20,
+              backgroundColor: "#FFA500",
+              borderRadius: 20,
+              padding: 15,
+              alignItems: "center",
+              elevation: 5,
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+              Total: ${getTotalPrice()}
+            </Text>
+
+            <TouchableOpacity
+              onPress={handleCheckout}
+              style={{
+                marginTop: 10,
+                backgroundColor: "white",
+                borderRadius: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 20,
+              }}
+            >
+              <Text style={{ color: "#FFA500", fontWeight: "bold" }}>
+                Complete order
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
     </View>
   );
