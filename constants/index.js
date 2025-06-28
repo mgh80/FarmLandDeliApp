@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../constants/supabase";
+import { supabase } from "./supabase";
 
 export const useCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -34,7 +34,6 @@ export const useProducts = () => {
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("Products").select("*");
     if (!error && data) {
-      // Normaliza los campos
       const transformed = data.map((item) => ({
         ...item,
         id: item.Id,
@@ -45,7 +44,6 @@ export const useProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-
     const subscription = supabase
       .channel("public:Products")
       .on(

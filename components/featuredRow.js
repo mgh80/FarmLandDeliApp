@@ -1,3 +1,4 @@
+import React from "react";
 import {
   View,
   Text,
@@ -5,17 +6,13 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
-import React from "react";
-import { themeColors } from "../theme";
 import ProductCard from "./productCard";
-import { useProducts } from "../constants";
+import { themeColors } from "../theme";
 
-export default function FeaturedRow({ title, description }) {
-  const products = useProducts();
-
+export default function FeaturedRow({ title, description, products = [] }) {
   return (
     <View style={styles.container}>
-      {/* Contenedor del título y botón */}
+      {/* Cabecera */}
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>{title}</Text>
@@ -26,13 +23,14 @@ export default function FeaturedRow({ title, description }) {
         </TouchableOpacity>
       </View>
 
+      {/* Scroll horizontal */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 15 }}
       >
-        {products.map((product, index) => (
-          <ProductCard item={product} key={index} />
+        {products.map((product) => (
+          <ProductCard item={product} key={product.id} />
         ))}
       </ScrollView>
     </View>

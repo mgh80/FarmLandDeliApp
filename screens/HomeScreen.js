@@ -14,7 +14,7 @@ import Categories from "../components/categories";
 import FeaturedRow from "../components/featuredRow";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../constants/supabase";
-import { useProducts } from "../constants";
+import { useProducts, useCategories } from "../constants";
 import { useCart } from "../context/CartContext";
 
 export default function HomeScreen() {
@@ -22,7 +22,10 @@ export default function HomeScreen() {
   const { getTotalItems } = useCart();
   const [showSidebar, setShowSidebar] = useState(false);
   const [pressedIcon, setPressedIcon] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(null);
+
   const products = useProducts();
+  const categories = useCategories();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -57,14 +60,31 @@ export default function HomeScreen() {
         style={{ marginTop: 10 }}
         showsVerticalScrollIndicator={false}
       >
-        <Categories />
-        {Array.isArray(products) && products.length > 0 && (
-          <FeaturedRow
-            title="Products"
-            description="The most recent"
-            products={products}
-          />
-        )}
+        <Categories
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+        />
+
+        {/* Fila por categoría */}
+        {categories.map((cat) => {
+          const prodsInCat = products.filter((p) => p.CategoryId === cat.Id);
+
+          // si hay filtro y no es esta categoría, no la muestres
+          if (activeCategory && cat.Name !== activeCategory) {
+            return null;
+          }
+
+          return (
+            prodsInCat.length > 0 && (
+              <FeaturedRow
+                key={cat.Id}
+                title={cat.Name}
+                description={`${prodsInCat.length} productos`}
+                products={prodsInCat}
+              />
+            )
+          );
+        })}
       </ScrollView>
 
       {/* Bottom nav */}

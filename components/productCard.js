@@ -1,6 +1,5 @@
-import { View, Text, TouchableWithoutFeedback, Image } from "react-native";
 import React from "react";
-import * as Icon from "react-native-feather";
+import { View, Text, TouchableWithoutFeedback, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 export default function ProductCard({ item }) {
@@ -31,7 +30,6 @@ export default function ProductCard({ item }) {
           width: 260,
         }}
       >
-        {/* Imagen del producto */}
         <Image
           source={
             item.Image
@@ -47,20 +45,17 @@ export default function ProductCard({ item }) {
           resizeMode="cover"
         />
 
-        {/* Detalles */}
         <View style={{ padding: 12 }}>
           <Text style={{ fontSize: 16, fontWeight: "bold", color: "#1f2937" }}>
             {item.Name}
           </Text>
 
-          {/* Precio */}
-          {item.Price && (
+          {item.Price != null && (
             <Text style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}>
               ${item.Price.toFixed(2)}
             </Text>
           )}
 
-          {/* Descripción (opcional) */}
           {item.Description && (
             <Text
               style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6 }}
