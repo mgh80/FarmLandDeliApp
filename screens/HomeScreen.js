@@ -157,7 +157,7 @@ export default function HomeScreen() {
                 position: "absolute",
                 right: -8,
                 top: -4,
-                backgroundColor: "#1F2937",
+                backgroundColor: "#FFA500",
                 borderRadius: 10,
                 paddingHorizontal: 5,
                 paddingVertical: 1,

@@ -22,6 +22,10 @@ export const CartProvider = ({ children }) => {
     });
   };
 
+  const removeFromCart = (id) => {
+    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  };
+
   const clearCart = () => setCartItems([]);
 
   const getTotalItems = () =>
@@ -35,7 +39,8 @@ export const CartProvider = ({ children }) => {
       value={{
         cartItems,
         addToCart,
-        clearCart, // ahora sí funciona
+        removeFromCart,
+        clearCart,
         getTotalItems,
         getTotalPrice,
       }}

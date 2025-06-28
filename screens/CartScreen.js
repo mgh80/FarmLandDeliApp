@@ -144,7 +144,7 @@ export default function CartScreen({ navigation }) {
         >
           <Icon.ShoppingBag width={90} height={90} stroke="#9CA3AF" />
           <Text style={{ marginTop: 20, fontSize: 18, color: "#6B7280" }}>
-            Your cart is empty.
+            Tu carrito está vacío.
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
@@ -157,7 +157,7 @@ export default function CartScreen({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-              Go to home
+              Ir al inicio
             </Text>
           </TouchableOpacity>
         </View>
@@ -184,7 +184,7 @@ export default function CartScreen({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-              Total: ${getTotalPrice()}
+              Total: ${getTotalPrice().toFixed(2)}
             </Text>
 
             <TouchableOpacity
@@ -198,7 +198,7 @@ export default function CartScreen({ navigation }) {
               }}
             >
               <Text style={{ color: "#FFA500", fontWeight: "bold" }}>
-                Complete order
+                Go to pay
               </Text>
             </TouchableOpacity>
           </View>
