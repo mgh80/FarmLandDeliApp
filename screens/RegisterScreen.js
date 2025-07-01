@@ -4,95 +4,91 @@ import {
   Text,
   TextInput,
   Pressable,
-  Image,
-  Alert,
   StyleSheet,
+  ActivityIndicator,
+  Image,
 } from "react-native";
-import { supabase } from "../constants/supabase";
+import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
+import { supabase } from "../constants/supabase";
 
 const RegisterScreen = () => {
+  const navigation = useNavigation();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const registrarYGuardar = async () => {
-    console.log(">>> registrarYGuardar ejecutado");
-
-    if (!email || !password || !name || !phone) {
-      Alert.alert("Error", "Todos los campos son obligatorios");
+  const handleRegister = async () => {
+    if (!email || !password || !name) {
+      Toast.show({
+        type: "error",
+        text1: "Campos incompletos",
+        text2: "Completa todos los campos requeridos",
+      });
       return;
     }
 
-    try {
-      const res = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: "https://expo.dev", // o tu URL real
-        },
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setLoading(false);
+      Toast.show({
+        type: "error",
+        text1: "Registro fallido",
+        text2: error.message,
       });
-
-      const { error: signUpError } = res;
-
-      if (signUpError) {
-        if (signUpError.message.includes("User already registered")) {
-          console.log(">>> Usuario ya existe, intentando login...");
-          const { data: loginData, error: loginError } =
-            await supabase.auth.signInWithPassword({ email, password });
-
-          if (loginError) throw loginError;
-          await guardarUsuario();
-          return;
-        }
-        throw signUpError;
-      }
-
-      console.log(">>> SignUp exitoso. Esperando para login...");
-      await new Promise((res) => setTimeout(res, 1000));
-
-      const { data: loginData, error: loginError } =
-        await supabase.auth.signInWithPassword({ email, password });
-
-      if (loginError) throw loginError;
-
-      await guardarUsuario();
-    } catch (err) {
-      console.error(">>> Error total:", err);
-      Alert.alert("Error", err.message ?? "Algo salió mal");
+      return;
     }
-  };
 
-  const guardarUsuario = async () => {
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
+    const userId = data?.user?.id;
 
     if (!userId) {
-      Alert.alert("Error", "No se pudo obtener el ID del usuario");
+      setLoading(false);
+      Toast.show({
+        type: "error",
+        text1: "No se obtuvo el ID del usuario",
+      });
       return;
     }
 
-    const { error: insertError } = await supabase
-      .from("Users")
-      .insert([{ id: userId, name, email, phone }]);
+    const { error: upsertError } = await supabase.from("Users").upsert({
+      id: userId,
+      email,
+      name,
+      phone,
+      points: 0,
+      dateCreated: new Date().toISOString(),
+    });
 
-    if (insertError) {
-      console.error(">>> Error al insertar en Users:", insertError.message);
-      Alert.alert("Error al guardar usuario", insertError.message);
-      return;
+    if (upsertError) {
+      console.error("🛑 Error al guardar en tabla Users:", upsertError);
+
+      Toast.show({
+        type: "error",
+        text1: "Error al guardar en la tabla Users",
+        text2: upsertError.message,
+      });
+    } else {
+      Toast.show({
+        type: "success",
+        text1: "Usuario registrado correctamente",
+        text2: "Verifica tu correo antes de iniciar sesión",
+      });
+
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Home" }],
+      });
     }
 
-    // ✅ Éxito: limpiar campos, mostrar mensaje y redirigir
-    Alert.alert("Éxito", "Usuario registrado y datos guardados");
-    setEmail("");
-    setPassword("");
-    setName("");
-    setPhone("");
-
-    // 👉 Redirige a Home (necesitas useNavigation)
-    navigation.replace("Home");
+    setLoading(false);
   };
 
   return (
@@ -101,42 +97,50 @@ const RegisterScreen = () => {
         source={require("../assets/images/splash.png")}
         style={styles.logo}
       />
+      <Text style={styles.title}>Crear cuenta</Text>
+
       <TextInput
-        placeholder="Full Name"
+        placeholder="Nombre completo"
+        style={styles.input}
         value={name}
         onChangeText={setName}
-        style={styles.input}
-        placeholderTextColor="#999"
       />
-
       <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Teléfono"
         style={styles.input}
-        placeholderTextColor="#999"
-      />
-
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={styles.input}
-        placeholderTextColor="#999"
-      />
-
-      <TextInput
-        placeholder="Phone"
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"
-        style={styles.input}
-        placeholderTextColor="#999"
       />
-      <Pressable style={styles.button} onPress={registrarYGuardar}>
-        <Text style={styles.buttonText}>Create Account</Text>
+      <TextInput
+        placeholder="Correo electrónico"
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+      />
+      <TextInput
+        placeholder="Contraseña"
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+
+      <Pressable style={styles.button} onPress={handleRegister}>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Registrarse</Text>
+        )}
       </Pressable>
+
+      <Text style={styles.loginText}>
+        ¿Ya tienes una cuenta?{" "}
+        <Text style={styles.loginLink} onPress={() => navigation.goBack()}>
+          Inicia sesión
+        </Text>
+      </Text>
     </View>
   );
 };
@@ -144,28 +148,30 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f7f7f7",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f7f7f7",
+    padding: 20,
   },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 30,
+  logo: { width: 100, height: 100, marginBottom: 20 },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#333",
   },
   input: {
-    width: "100%",
+    width: "90%",
     height: 50,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#ddd",
     borderRadius: 10,
     paddingHorizontal: 15,
     marginBottom: 15,
     backgroundColor: "#fff",
   },
   button: {
-    width: "100%",
+    width: "90%",
     height: 50,
     backgroundColor: "#ff6347",
     justifyContent: "center",
@@ -173,11 +179,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 10,
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
+  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  loginText: { marginTop: 15, color: "#666" },
+  loginLink: { color: "#ff6347", fontWeight: "bold" },
 });
 
 export default RegisterScreen;

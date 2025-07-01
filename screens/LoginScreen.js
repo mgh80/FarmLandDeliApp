@@ -12,23 +12,80 @@ import { supabase } from "../constants/supabase";
 import Toast from "react-native-toast-message";
 import * as AuthSession from "expo-auth-session";
 import Icon from "react-native-vector-icons/Feather";
+import { registerForPushNotificationsAsync } from "../lib/notifications";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // ✅ importante
+  const [showPassword, setShowPassword] = useState(false);
+
+  const saveUserToSupabase = async (user) => {
+    try {
+      const pushToken = await registerForPushNotificationsAsync();
+
+      // Paso 1: consultar si ya existe
+      const { data: existingUsers, error: fetchError } = await supabase
+        .from("Users")
+        .select("id")
+        .eq("id", user.id)
+        .limit(1);
+
+      if (fetchError) {
+        Toast.show({
+          type: "error",
+          text1: "Error consultando usuario",
+          text2: fetchError.message,
+        });
+        return;
+      }
+
+      // Paso 2: Si ya existe, solo navegar
+      if (existingUsers && existingUsers.length > 0) {
+        navigation.replace("Home");
+        return;
+      }
+
+      // Paso 3: si no existe, lo crea
+      const upsertPayload = {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.full_name || "",
+        phone: user.phone || "",
+        ...(pushToken && { push_token: pushToken }),
+      };
+
+      const { error: upsertError } = await supabase
+        .from("Users")
+        .upsert(upsertPayload);
+
+      if (upsertError) {
+        Toast.show({
+          type: "error",
+          text1: "Error guardando usuario",
+          text2: upsertError.message,
+        });
+      } else {
+        navigation.replace("Home");
+      }
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: "Error inesperado",
+        text2: err.message,
+      });
+    }
+  };
 
   const handleGoogleLogin = async () => {
-    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+    const redirectUri =
+      "https://prague-inform-popular-niagara.trycloudflare.com";
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectUri,
-        queryParams: {
-          prompt: "select_account",
-        },
+        queryParams: { prompt: "select_account" },
       },
     });
 
@@ -41,34 +98,37 @@ const LoginScreen = () => {
     }
   };
 
+  const handleEmailPasswordLogin = async () => {
+    if (!email || !password) {
+      Toast.show({
+        type: "error",
+        text1: "Todos los campos son obligatorios",
+      });
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      Toast.show({
+        type: "error",
+        text1: "Error al iniciar sesión",
+        text2: error.message,
+      });
+      return;
+    }
+
+    await saveUserToSupabase(data.user);
+  };
+
   useEffect(() => {
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
-          const user = session.user;
-
-          const { error: upsertError } = await supabase.from("Users").upsert({
-            id: user.id,
-            email: user.email,
-            name: user.user_metadata?.full_name || "",
-            phone: user.phone || "",
-          });
-
-          if (upsertError) {
-            Toast.show({
-              type: "error",
-              text1: "Error saving user",
-              text2: upsertError.message,
-            });
-          } else {
-            Toast.show({
-              type: "success",
-              text1: "Welcome to FarmLand Deli",
-              text2: user.email,
-            });
-
-            navigation.replace("Home");
-          }
+          await saveUserToSupabase(session.user);
         }
       }
     );
@@ -112,15 +172,7 @@ const LoginScreen = () => {
         </Pressable>
       </View>
 
-      <Pressable
-        style={styles.button}
-        onPress={() =>
-          Toast.show({
-            type: "info",
-            text1: "Usa Google para iniciar sesión ☝️",
-          })
-        }
-      >
+      <Pressable style={styles.button} onPress={handleEmailPasswordLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </Pressable>
 
