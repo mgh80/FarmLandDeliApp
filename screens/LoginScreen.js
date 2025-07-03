@@ -22,12 +22,12 @@ const LoginScreen = () => {
 
   const saveUserToSupabase = async (user) => {
     try {
-      const pushToken = await registerForPushNotificationsAsync();
+      // const pushToken = await registerForPushNotificationsAsync();
 
       // Paso 1: consultar si ya existe
       const { data: existingUsers, error: fetchError } = await supabase
         .from("Users")
-        .select("id")
+        .select("id, name")
         .eq("id", user.id)
         .limit(1);
 
@@ -40,9 +40,19 @@ const LoginScreen = () => {
         return;
       }
 
-      // Paso 2: Si ya existe, solo navegar
+      // Paso 2: Si ya existe, saludar con su nombre y navegar
       if (existingUsers && existingUsers.length > 0) {
-        navigation.replace("Home");
+        const userName = existingUsers[0].name || "user";
+
+        Toast.show({
+          type: "success",
+          text1: `Welcome, ${userName}!`,
+          text2: "Successful login 👋",
+        });
+
+        setTimeout(() => {
+          navigation.replace("Home");
+        }, 1200);
         return;
       }
 
@@ -52,7 +62,7 @@ const LoginScreen = () => {
         email: user.email,
         name: user.user_metadata?.full_name || "",
         phone: user.phone || "",
-        ...(pushToken && { push_token: pushToken }),
+        // ...(pushToken && { push_token: pushToken }),
       };
 
       const { error: upsertError } = await supabase
@@ -66,7 +76,17 @@ const LoginScreen = () => {
           text2: upsertError.message,
         });
       } else {
-        navigation.replace("Home");
+        const newUserName = upsertPayload.name || "user";
+
+        Toast.show({
+          type: "success",
+          text1: `Welcome, ${newUserName}!`,
+          text2: "Registro exitoso 🎉",
+        });
+
+        setTimeout(() => {
+          navigation.replace("Home");
+        }, 1200);
       }
     } catch (err) {
       Toast.show({
@@ -78,10 +98,9 @@ const LoginScreen = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const redirectUri =
-      "https://prague-inform-popular-niagara.trycloudflare.com";
+    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
 
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectUri,
