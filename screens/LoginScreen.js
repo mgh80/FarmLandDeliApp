@@ -98,10 +98,14 @@ const LoginScreen = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const redirectUri =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : AuthSession.makeRedirectUri({ useProxy: true });
+    // 🔥 Versión actual con URL quemada en producción
+    const redirectUri = "https://farmlanddeli.vercel.app";
+
+    // ✅ Versión recomendada para entornos mixtos (desarrollo/producción):
+    // const redirectUri =
+    //   typeof window !== "undefined"
+    //     ? window.location.origin
+    //     : AuthSession.makeRedirectUri({ useProxy: true });
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
