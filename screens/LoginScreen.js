@@ -98,7 +98,10 @@ const LoginScreen = () => {
   };
 
   const handleGoogleLogin = async () => {
-    const redirectUri = AuthSession.makeRedirectUri({ useProxy: true });
+    const redirectUri =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : AuthSession.makeRedirectUri({ useProxy: true });
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
