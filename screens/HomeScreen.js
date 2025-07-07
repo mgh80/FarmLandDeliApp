@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Icon from "react-native-feather";
 import Categories from "../components/categories";
 import FeaturedRow from "../components/featuredRow";
+import Carousel from "../components/carousel";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../constants/supabase";
 import { useProducts, useCategories } from "../constants";
@@ -74,12 +75,16 @@ export default function HomeScreen() {
         style={{ marginTop: 10 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Categorías */}
         <Categories
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
         />
 
-        {/* Mostrar filas por categoría */}
+        {/* Carrusel de promociones */}
+        <Carousel />
+
+        {/* Filas de productos por categoría */}
         {categories.map((cat) => {
           const productsInCategory = products.filter(
             (p) => p.CategoryId === cat.Id
@@ -104,7 +109,7 @@ export default function HomeScreen() {
         })}
       </ScrollView>
 
-      {/* Barra de navegación inferior */}
+      {/* Barra inferior */}
       <View
         style={{
           flexDirection: "row",
@@ -116,7 +121,6 @@ export default function HomeScreen() {
           backgroundColor: "#fff",
         }}
       >
-        {/* Inicio */}
         <Pressable
           onPressIn={() => setPressedIcon("Home")}
           onPressOut={() => setPressedIcon(null)}
@@ -139,7 +143,6 @@ export default function HomeScreen() {
           </Text>
         </Pressable>
 
-        {/* Carrito */}
         <Pressable
           onPress={() => navigation.navigate("Cart")}
           onPressIn={() => setPressedIcon("cart")}
@@ -185,7 +188,6 @@ export default function HomeScreen() {
           </Text>
         </Pressable>
 
-        {/* Perfil */}
         <Pressable
           onPressIn={() => setPressedIcon("profile")}
           onPressOut={() => setPressedIcon(null)}
@@ -210,7 +212,7 @@ export default function HomeScreen() {
         </Pressable>
       </View>
 
-      {/* Sidebar lateral */}
+      {/* Sidebar */}
       <Modal
         visible={showSidebar}
         animationType="slide"
@@ -284,6 +286,7 @@ export default function HomeScreen() {
                 Logout
               </Text>
             </TouchableOpacity>
+
             <Pressable
               onPress={() => setShowSidebar(false)}
               style={{ marginTop: 15 }}

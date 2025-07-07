@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, TouchableWithoutFeedback, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableWithoutFeedback,
+  Image,
+  Platform,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 export default function ProductCard({ item }) {
@@ -20,14 +26,16 @@ export default function ProductCard({ item }) {
       <View
         style={{
           marginRight: 24,
+          marginBottom: 24,
           backgroundColor: "white",
           borderRadius: 24,
           shadowColor: "#000",
-          shadowOpacity: 0.1,
-          shadowOffset: { width: 0, height: 4 },
-          shadowRadius: 10,
-          elevation: 3,
+          shadowOpacity: 0.35, // más opacidad
+          shadowOffset: { width: 0, height: 8 }, // más profundidad
+          shadowRadius: 16, // más dispersión
+          elevation: Platform.OS === "android" ? 12 : 0, // Android más elevado
           width: 260,
+          overflow: Platform.OS === "android" ? "hidden" : "visible",
         }}
       >
         <Image
