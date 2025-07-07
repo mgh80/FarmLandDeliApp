@@ -1,5 +1,14 @@
 import React from "react";
-import { View, Text, FlatList, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as Animatable from "react-native-animatable";
 import { useCart } from "../context/CartContext";
 import * as Icon from "react-native-feather";
 import { supabase } from "../constants/supabase";
@@ -87,15 +96,30 @@ export default function CartScreen({ navigation }) {
   };
 
   const handleCheckout = async () => {
-    const result = await saveOrderOnSupabase(cartItems);
-
-    if (result) {
-      clearCart();
-      navigation.replace("OrderConfirmation", {
-        orderNumber: result.orderNumber,
-        points: result.earnedPoints,
-      });
-    }
+    Alert.alert(
+      "Confirmación",
+      "¿Deseas confirmar y enviar tu pedido?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Confirmar",
+          onPress: async () => {
+            const result = await saveOrderOnSupabase(cartItems);
+            if (result) {
+              clearCart();
+              navigation.replace("OrderConfirmation", {
+                orderNumber: result.orderNumber,
+                points: result.earnedPoints,
+              });
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
   };
 
   const renderItem = ({ item }) => (
@@ -128,7 +152,7 @@ export default function CartScreen({ navigation }) {
   );
 
   return (
-    <View style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
+    <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
         Cart ({getTotalItems()} product{getTotalItems() !== 1 ? "s" : ""})
       </Text>
@@ -170,7 +194,9 @@ export default function CartScreen({ navigation }) {
             contentContainerStyle={{ paddingBottom: 100 }}
           />
 
-          <View
+          <Animatable.View
+            animation="bounceInUp"
+            duration={1000}
             style={{
               position: "absolute",
               bottom: 20,
@@ -201,9 +227,9 @@ export default function CartScreen({ navigation }) {
                 Go to pay
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animatable.View>
         </>
       )}
-    </View>
+    </SafeAreaView>
   );
 }

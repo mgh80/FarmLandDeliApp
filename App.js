@@ -1,12 +1,12 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Navigation from "./navigation";
 import Toast from "react-native-toast-message";
 import { CartProvider } from "./context/CartContext";
 import * as Notifications from "expo-notifications";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import SplashScreen from "./screens/SplashScreen"; // 👈 Asegúrate que esta ruta sea correcta
 
-// 👇 Esto habilita que las notificaciones se muestren en foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -17,35 +17,35 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   const notificationListener = useRef();
+  const [showSplash, setShowSplash] = useState(true); // 👈 Estado para mostrar splash
 
   useEffect(() => {
-    // 👂 Listener para recibir la notificación cuando la app está abierta
+    // Listener de notificaciones
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         console.log("🔔 Notificación recibida:", notification);
       });
 
+    // Temporizador para ocultar splash
+    const splashTimeout = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000); // 3 segundos
+
     return () => {
       Notifications.removeNotificationSubscription(
         notificationListener.current
       );
+      clearTimeout(splashTimeout);
     };
   }, []);
 
   return (
     <CartProvider>
-      <Navigation />
-      <Toast />
-      <StatusBar style="auto" />
+      <View style={{ flex: 1 }}>
+        {showSplash ? <SplashScreen /> : <Navigation />}
+        <Toast />
+        <StatusBar style="auto" />
+      </View>
     </CartProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
