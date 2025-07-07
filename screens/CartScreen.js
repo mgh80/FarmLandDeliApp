@@ -130,7 +130,7 @@ export default function CartScreen({ navigation }) {
   return (
     <View style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
-        Carrito ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
+        Cart ({getTotalItems()} product{getTotalItems() !== 1 ? "s" : ""})
       </Text>
 
       {cartItems.length === 0 ? (

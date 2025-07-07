@@ -1,24 +1,131 @@
 import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Icon from "react-native-feather";
 import { themeColors } from "../theme";
 import { useCart } from "../context/CartContext";
+import { supabase } from "../constants/supabase";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Products() {
   const { params } = useRoute();
   const navigation = useNavigation();
   const { addToCart } = useCart();
   let item = params;
-  console.log("🧩 Datos del producto:", item);
+
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(item.price || 10);
+  const [ingredients, setIngredients] = useState([]);
+  const [selectedIngredients, setSelectedIngredients] = useState({});
 
   const updateQuantity = (type) => {
     let newQuantity = type === "increase" ? quantity + 1 : quantity - 1;
-    if (newQuantity < 1) newQuantity = 1; // Evita valores menores a 1
+    if (newQuantity < 1) newQuantity = 1;
     setQuantity(newQuantity);
-    setTotalPrice(newQuantity * (item.price || 10)); // Calcula el precio total
+    setTotalPrice(newQuantity * (item.price || 10));
+  };
+
+  const toggleIngredient = (id) => {
+    setSelectedIngredients((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  useEffect(() => {
+    const fetchIngredients = async () => {
+      const { data, error } = await supabase
+        .from("Ingredients")
+        .select("*")
+        .eq("product_id", item.id);
+
+      if (error) {
+        console.error("Error al obtener ingredientes:", error);
+      } else {
+        setIngredients(data);
+        const initialSelection = {};
+        data.forEach((ing) => {
+          initialSelection[ing.id] = true;
+        });
+        setSelectedIngredients(initialSelection);
+      }
+    };
+
+    fetchIngredients();
+  }, [item.id]);
+
+  const handleAddToCart = async () => {
+    try {
+      // Agregar al contexto del carrito
+      addToCart(
+        {
+          id: item.id,
+          name: item.name,
+          image: item.image,
+          price: item.price,
+          description: item.description,
+        },
+        quantity
+      );
+
+      // Obtener usuario actual
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      if (!userId) {
+        alert("Usuario no autenticado");
+        return;
+      }
+
+      // Crear orden en la tabla Orders
+      const orderNumber = `ORD-${Date.now()}`;
+      const { data: orderData, error: orderError } = await supabase
+        .from("Orders")
+        .insert([
+          {
+            statusid: 1,
+            price: totalPrice,
+            date: new Date().toISOString(),
+            userid: userId,
+            productid: item.id,
+            quantity: quantity,
+            ordernumber: orderNumber,
+          },
+        ])
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error("Error al crear la orden:", orderError);
+        return;
+      }
+
+      const orderId = orderData.id;
+
+      // Insertar ingredientes seleccionados en OrderIngredients
+      const selectedIds = Object.entries(selectedIngredients)
+        .filter(([_, value]) => value)
+        .map(([id]) => parseInt(id));
+
+      const ingredientsToInsert = selectedIds.map((ingId) => ({
+        order_id: orderId,
+        ingredient_id: ingId,
+      }));
+
+      if (ingredientsToInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("OrderIngredients")
+          .insert(ingredientsToInsert);
+
+        if (insertError) {
+          console.error("Error al insertar ingredientes:", insertError);
+        }
+      }
+
+      navigation.goBack();
+    } catch (err) {
+      console.error("Error general al agregar al carrito:", err);
+    }
   };
 
   return (
@@ -27,15 +134,13 @@ export default function Products() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Imagen principal */}
+        {/* Imagen principal y botón volver */}
         <View className="relative">
           <Image
             source={{ uri: item.image }}
             style={{ width: "100%", height: 280 }}
             resizeMode="cover"
           />
-
-          {/* Botón de regreso */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{
@@ -45,18 +150,13 @@ export default function Products() {
               backgroundColor: "rgba(255, 255, 255, 0.8)",
               padding: 10,
               borderRadius: 50,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: 5,
             }}
           >
             <Icon.ArrowLeft strokeWidth={3} stroke={themeColors.bgColor(1)} />
           </TouchableOpacity>
         </View>
 
-        {/* Contenedor de información */}
+        {/* Información y selección */}
         <View
           style={{
             backgroundColor: "white",
@@ -65,14 +165,8 @@ export default function Products() {
             marginTop: -40,
             paddingHorizontal: 20,
             paddingTop: 20,
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -3 },
-            shadowOpacity: 0.1,
-            shadowRadius: 5,
-            elevation: 4,
           }}
         >
-          {/* Nombre y descripción */}
           <Text style={{ fontSize: 24, fontWeight: "bold", color: "#333" }}>
             {item.name}
           </Text>
@@ -87,7 +181,6 @@ export default function Products() {
             {item.description || "Descripción del producto aquí..."}
           </Text>
 
-          {/* Título de la sección "Order" */}
           <Text
             style={{
               fontSize: 24,
@@ -99,7 +192,7 @@ export default function Products() {
             Order
           </Text>
 
-          {/* Producto seleccionado en Row */}
+          {/* Tarjeta de pedido */}
           <View
             style={{
               backgroundColor: "white",
@@ -107,14 +200,9 @@ export default function Products() {
               padding: 15,
               flexDirection: "row",
               alignItems: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
               elevation: 3,
             }}
           >
-            {/* Imagen del producto */}
             <Image
               source={{ uri: item.image }}
               style={{
@@ -123,23 +211,18 @@ export default function Products() {
                 borderRadius: 15,
                 marginRight: 15,
               }}
-              resizeMode="cover"
             />
-
-            {/* Nombre y precio */}
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333" }}>
+              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
                 {item.name}
               </Text>
               <Text style={{ fontSize: 14, color: "gray" }}>
-                {item.description || "Descripción corta..."}
+                {item.description}
               </Text>
               <Text style={{ fontSize: 18, fontWeight: "bold", marginTop: 5 }}>
                 ${item.price || "10"}
               </Text>
             </View>
-
-            {/* Controles de cantidad */}
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <TouchableOpacity
                 onPress={() => updateQuantity("decrease")}
@@ -151,11 +234,9 @@ export default function Products() {
               >
                 <Icon.Minus width={15} height={15} stroke="white" />
               </TouchableOpacity>
-
               <Text style={{ fontSize: 18, marginHorizontal: 10 }}>
                 {quantity}
               </Text>
-
               <TouchableOpacity
                 onPress={() => updateQuantity("increase")}
                 style={{
@@ -168,24 +249,53 @@ export default function Products() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Ingredientes */}
+          <Text style={{ marginTop: 20, fontWeight: "bold", fontSize: 18 }}>
+            Ingredients:
+          </Text>
+          {ingredients.map((ing) => (
+            <TouchableOpacity
+              key={ing.id}
+              onPress={() => toggleIngredient(ing.id)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginTop: 10,
+              }}
+            >
+              <View
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 4,
+                  borderWidth: 2,
+                  borderColor: "#FFA500",
+                  marginRight: 10,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: selectedIngredients[ing.id]
+                    ? "#FFA500"
+                    : "white",
+                }}
+              >
+                {selectedIngredients[ing.id] && (
+                  <Text
+                    style={{ color: "white", fontSize: 14, fontWeight: "bold" }}
+                  >
+                    ✓
+                  </Text>
+                )}
+              </View>
+              <Text style={{ fontSize: 16 }}>{ing.name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
 
-      {/* 🔥 Botón View Cart - SIEMPRE FIJO EN LA PARTE INFERIOR */}
+      {/* Botón inferior */}
       <TouchableOpacity
-        onPress={() => {
-          addToCart(
-            {
-              id: item.id,
-              name: item.name,
-              image: item.image,
-              price: item.price,
-              description: item.description,
-            },
-            quantity
-          );
-          navigation.goBack();
-        }}
+        onPress={handleAddToCart}
         style={{
           position: "absolute",
           bottom: 20,
@@ -198,10 +308,8 @@ export default function Products() {
           justifyContent: "space-between",
           padding: 15,
           elevation: 5,
-          marginBottom: 20,
         }}
       >
-        {/* Cantidad */}
         <View
           style={{
             backgroundColor: "white",
@@ -216,13 +324,9 @@ export default function Products() {
             {quantity}
           </Text>
         </View>
-
-        {/* Texto */}
         <Text style={{ fontSize: 18, fontWeight: "bold", color: "white" }}>
           Add Cart
         </Text>
-
-        {/* Precio Total */}
         <Text style={{ fontSize: 18, fontWeight: "bold", color: "white" }}>
           ${totalPrice}
         </Text>
