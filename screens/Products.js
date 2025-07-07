@@ -5,7 +5,6 @@ import * as Icon from "react-native-feather";
 import { themeColors } from "../theme";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../constants/supabase";
-import { v4 as uuidv4 } from "uuid";
 
 export default function Products() {
   const { params } = useRoute();
@@ -55,78 +54,35 @@ export default function Products() {
   }, [item.id]);
 
   const handleAddToCart = async () => {
-    try {
-      // Agregar al contexto del carrito
-      addToCart(
+    addToCart(
+      {
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        description: item.description,
+      },
+      quantity
+    );
+
+    const selectedIds = Object.entries(selectedIngredients)
+      .filter(([_, value]) => value)
+      .map(([id]) => parseInt(id));
+
+    for (let id of selectedIds) {
+      await supabase.from("OrderIngredients").insert([
         {
-          id: item.id,
-          name: item.name,
-          image: item.image,
-          price: item.price,
-          description: item.description,
+          ingredient_id: id,
+          product_id: item.id,
         },
-        quantity
-      );
-
-      // Obtener usuario actual
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData?.user?.id;
-
-      if (!userId) {
-        alert("Usuario no autenticado");
-        return;
-      }
-
-      // Crear orden en la tabla Orders
-      const orderNumber = `ORD-${Date.now()}`;
-      const { data: orderData, error: orderError } = await supabase
-        .from("Orders")
-        .insert([
-          {
-            statusid: 1,
-            price: totalPrice,
-            date: new Date().toISOString(),
-            userid: userId,
-            productid: item.id,
-            quantity: quantity,
-            ordernumber: orderNumber,
-          },
-        ])
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error("Error al crear la orden:", orderError);
-        return;
-      }
-
-      const orderId = orderData.id;
-
-      // Insertar ingredientes seleccionados en OrderIngredients
-      const selectedIds = Object.entries(selectedIngredients)
-        .filter(([_, value]) => value)
-        .map(([id]) => parseInt(id));
-
-      const ingredientsToInsert = selectedIds.map((ingId) => ({
-        order_id: orderId,
-        ingredient_id: ingId,
-      }));
-
-      if (ingredientsToInsert.length > 0) {
-        const { error: insertError } = await supabase
-          .from("OrderIngredients")
-          .insert(ingredientsToInsert);
-
-        if (insertError) {
-          console.error("Error al insertar ingredientes:", insertError);
-        }
-      }
-
-      navigation.goBack();
-    } catch (err) {
-      console.error("Error general al agregar al carrito:", err);
+      ]);
     }
+
+    navigation.goBack();
   };
+
+  const taxAmount = totalPrice * 0.06;
+  const finalTotal = totalPrice + taxAmount;
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -134,7 +90,6 @@ export default function Products() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Imagen principal y botón volver */}
         <View className="relative">
           <Image
             source={{ uri: item.image }}
@@ -150,13 +105,17 @@ export default function Products() {
               backgroundColor: "rgba(255, 255, 255, 0.8)",
               padding: 10,
               borderRadius: 50,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
             }}
           >
             <Icon.ArrowLeft strokeWidth={3} stroke={themeColors.bgColor(1)} />
           </TouchableOpacity>
         </View>
 
-        {/* Información y selección */}
         <View
           style={{
             backgroundColor: "white",
@@ -165,6 +124,11 @@ export default function Products() {
             marginTop: -40,
             paddingHorizontal: 20,
             paddingTop: 20,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -3 },
+            shadowOpacity: 0.1,
+            shadowRadius: 5,
+            elevation: 4,
           }}
         >
           <Text style={{ fontSize: 24, fontWeight: "bold", color: "#333" }}>
@@ -181,18 +145,10 @@ export default function Products() {
             {item.description || "Descripción del producto aquí..."}
           </Text>
 
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              color: "#333",
-              marginBottom: 10,
-            }}
-          >
+          <Text style={{ fontSize: 24, fontWeight: "bold", color: "#333" }}>
             Order
           </Text>
 
-          {/* Tarjeta de pedido */}
           <View
             style={{
               backgroundColor: "white",
@@ -200,7 +156,12 @@ export default function Products() {
               padding: 15,
               flexDirection: "row",
               alignItems: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
               elevation: 3,
+              marginBottom: 15,
             }}
           >
             <Image
@@ -211,17 +172,36 @@ export default function Products() {
                 borderRadius: 15,
                 marginRight: 15,
               }}
+              resizeMode="cover"
             />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+              <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333" }}>
                 {item.name}
               </Text>
               <Text style={{ fontSize: 14, color: "gray" }}>
-                {item.description}
+                {item.description || "Descripción corta..."}
               </Text>
               <Text style={{ fontSize: 18, fontWeight: "bold", marginTop: 5 }}>
                 ${item.price || "10"}
               </Text>
+              <View style={{ marginTop: 10 }}>
+                <Text style={{ fontSize: 14, color: "#555" }}>
+                  Subtotal: ${totalPrice.toFixed(2)}
+                </Text>
+                <Text style={{ fontSize: 14, color: "#555" }}>
+                  Tax (6%): ${taxAmount.toFixed(2)}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "#333",
+                    marginTop: 2,
+                  }}
+                >
+                  Total: ${finalTotal.toFixed(2)}
+                </Text>
+              </View>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <TouchableOpacity
@@ -250,7 +230,6 @@ export default function Products() {
             </View>
           </View>
 
-          {/* Ingredientes */}
           <Text style={{ marginTop: 20, fontWeight: "bold", fontSize: 18 }}>
             Ingredients:
           </Text>
@@ -293,7 +272,6 @@ export default function Products() {
         </View>
       </ScrollView>
 
-      {/* Botón inferior */}
       <TouchableOpacity
         onPress={handleAddToCart}
         style={{
@@ -308,6 +286,7 @@ export default function Products() {
           justifyContent: "space-between",
           padding: 15,
           elevation: 5,
+          marginBottom: 20,
         }}
       >
         <View
@@ -328,7 +307,7 @@ export default function Products() {
           Add Cart
         </Text>
         <Text style={{ fontSize: 18, fontWeight: "bold", color: "white" }}>
-          ${totalPrice}
+          ${finalTotal.toFixed(2)}
         </Text>
       </TouchableOpacity>
     </View>
