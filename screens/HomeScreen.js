@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../constants/supabase";
 import { useProducts, useCategories } from "../constants";
 import { useCart } from "../context/CartContext";
+import RewardsSection from "../components/rewardsSection";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -107,6 +108,9 @@ export default function HomeScreen() {
             />
           );
         })}
+
+        {/* 🔥 Sección de recompensas al final */}
+        <RewardsSection />
       </ScrollView>
 
       {/* Barra inferior */}
