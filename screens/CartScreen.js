@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Animatable from "react-native-animatable";
@@ -54,18 +55,47 @@ export default function CartScreen({ navigation }) {
       ordernumber: orderNumber,
     }));
 
-    const { error: orderError } = await supabase
+    const { data: insertedOrders, error: orderError } = await supabase
       .from("Orders")
-      .insert(orderRows);
+      .insert(orderRows)
+      .select();
 
-    if (orderError) {
+    if (orderError || !insertedOrders) {
       console.error("❌ Error al guardar la orden:", orderError);
       Toast.show({
         type: "error",
         text1: "❌ Error al guardar la orden",
-        text2: orderError.message,
+        text2: orderError?.message || "Error desconocido",
       });
       return false;
+    }
+
+    const ingredientRows = [];
+    insertedOrders.forEach((order, index) => {
+      const product = items[index];
+      const ingredientIds = product.ingredients || [];
+      ingredientIds.forEach((ingredient_id) => {
+        ingredientRows.push({
+          order_id: order.id,
+          ingredient_id: ingredient_id.toString(),
+        });
+      });
+    });
+
+    if (ingredientRows.length > 0) {
+      const { error: ingredientError } = await supabase
+        .from("OrderIngredients")
+        .insert(ingredientRows);
+
+      if (ingredientError) {
+        console.error("❌ Error al guardar ingredientes:", ingredientError);
+        Toast.show({
+          type: "error",
+          text1: "❌ Error al guardar ingredientes",
+          text2: ingredientError.message,
+        });
+        return false;
+      }
     }
 
     const { data: userData, error: fetchUserError } = await supabase
@@ -73,11 +103,6 @@ export default function CartScreen({ navigation }) {
       .select("points")
       .eq("id", user.id)
       .single();
-
-    if (fetchUserError) {
-      console.error("❌ No se pudieron obtener los puntos:", fetchUserError);
-      return false;
-    }
 
     const currentPoints = userData?.points || 0;
     const newTotalPoints = currentPoints + earnedPoints;
@@ -96,30 +121,35 @@ export default function CartScreen({ navigation }) {
   };
 
   const handleCheckout = async () => {
-    Alert.alert(
-      "Confirmación",
-      "¿Deseas confirmar y enviar tu pedido?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Confirmar",
-          onPress: async () => {
-            const result = await saveOrderOnSupabase(cartItems);
-            if (result) {
-              clearCart();
-              navigation.replace("OrderConfirmation", {
-                orderNumber: result.orderNumber,
-                points: result.earnedPoints,
-              });
-            }
-          },
-        },
-      ],
-      { cancelable: false }
-    );
+    const confirmed =
+      Platform.OS === "web"
+        ? window.confirm("¿Deseas confirmar y enviar tu pedido?")
+        : await new Promise((resolve) =>
+            Alert.alert(
+              "Confirmación",
+              "¿Deseas confirmar y enviar tu pedido?",
+              [
+                {
+                  text: "Cancelar",
+                  style: "cancel",
+                  onPress: () => resolve(false),
+                },
+                { text: "Confirmar", onPress: () => resolve(true) },
+              ],
+              { cancelable: true }
+            )
+          );
+
+    if (!confirmed) return;
+
+    const result = await saveOrderOnSupabase(cartItems);
+    if (result) {
+      clearCart();
+      navigation.replace("OrderConfirmation", {
+        orderNumber: result.orderNumber,
+        points: result.earnedPoints,
+      });
+    }
   };
 
   const renderItem = ({ item }) => (

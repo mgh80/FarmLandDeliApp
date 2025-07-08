@@ -53,7 +53,12 @@ export default function Products() {
     fetchIngredients();
   }, [item.id]);
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = () => {
+    const selectedIds = Object.entries(selectedIngredients)
+      .filter(([_, value]) => value)
+      .map(([id]) => parseInt(id));
+
+    // Agrega al carrito con los ingredientes seleccionados
     addToCart(
       {
         id: item.id,
@@ -61,24 +66,13 @@ export default function Products() {
         image: item.image,
         price: item.price,
         description: item.description,
+        ingredients: selectedIds, // solo se guarda en contexto
       },
       quantity
     );
 
-    const selectedIds = Object.entries(selectedIngredients)
-      .filter(([_, value]) => value)
-      .map(([id]) => parseInt(id));
-
-    for (let id of selectedIds) {
-      await supabase.from("OrderIngredients").insert([
-        {
-          ingredient_id: id,
-          product_id: item.id,
-        },
-      ]);
-    }
-
-    navigation.goBack();
+    // Redirige al Home
+    navigation.navigate("Home");
   };
 
   const taxAmount = totalPrice * 0.06;
