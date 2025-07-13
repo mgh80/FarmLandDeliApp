@@ -18,9 +18,6 @@ export default function FeaturedRow({ title, description, products = [] }) {
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.description}>{description}</Text>
         </View>
-        <TouchableOpacity>
-          <Text style={styles.seeAll}>See All</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Scroll horizontal */}
@@ -56,9 +53,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#718096",
     marginTop: 4,
-  },
-  seeAll: {
-    color: themeColors.text,
-    fontWeight: "600",
   },
 });

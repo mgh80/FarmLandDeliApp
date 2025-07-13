@@ -35,8 +35,8 @@ export default function CartScreen({ navigation }) {
     if (userError || !user) {
       Toast.show({
         type: "error",
-        text1: "🔒 Autenticación requerida",
-        text2: "Debes iniciar sesión para realizar un pedido.",
+        text1: "🔒 Authentication required",
+        text2: "You must be logged in to place an order.",
       });
       return false;
     }
@@ -61,11 +61,11 @@ export default function CartScreen({ navigation }) {
       .select();
 
     if (orderError || !insertedOrders) {
-      console.error("❌ Error al guardar la orden:", orderError);
+      console.error("❌ Error saving the order:", orderError);
       Toast.show({
         type: "error",
-        text1: "❌ Error al guardar la orden",
-        text2: orderError?.message || "Error desconocido",
+        text1: "❌ Error saving the order",
+        text2: orderError?.message || "Unknown error",
       });
       return false;
     }
@@ -88,10 +88,10 @@ export default function CartScreen({ navigation }) {
         .insert(ingredientRows);
 
       if (ingredientError) {
-        console.error("❌ Error al guardar ingredientes:", ingredientError);
+        console.error("❌ Error saving ingredients:", ingredientError);
         Toast.show({
           type: "error",
-          text1: "❌ Error al guardar ingredientes",
+          text1: "❌  Error saving ingredients",
           text2: ingredientError.message,
         });
         return false;
@@ -113,7 +113,7 @@ export default function CartScreen({ navigation }) {
       .eq("id", user.id);
 
     if (updateError) {
-      console.error("❌ No se pudieron actualizar los puntos:", updateError);
+      console.error("❌ Points could not be updated:", updateError);
       return false;
     }
 
@@ -123,18 +123,18 @@ export default function CartScreen({ navigation }) {
   const handleCheckout = async () => {
     const confirmed =
       Platform.OS === "web"
-        ? window.confirm("¿Deseas confirmar y enviar tu pedido?")
+        ? window.confirm("Do you want to confirm and send your order?")
         : await new Promise((resolve) =>
             Alert.alert(
-              "Confirmación",
-              "¿Deseas confirmar y enviar tu pedido?",
+              "Confirmation",
+              "You wish to confirm and send your order?",
               [
                 {
-                  text: "Cancelar",
+                  text: "Cancel",
                   style: "cancel",
                   onPress: () => resolve(false),
                 },
-                { text: "Confirmar", onPress: () => resolve(true) },
+                { text: "Confirm", onPress: () => resolve(true) },
               ],
               { cancelable: true }
             )
@@ -172,7 +172,7 @@ export default function CartScreen({ navigation }) {
         <Text style={{ fontWeight: "bold", fontSize: 16 }}>{item.name}</Text>
         <Text style={{ color: "#555" }}>Cantidad: {item.quantity}</Text>
         <Text style={{ color: "#333" }}>
-          Precio: ${(item.price * item.quantity).toFixed(2)}
+          Price: ${(item.price * item.quantity).toFixed(2)}
         </Text>
       </View>
       <TouchableOpacity onPress={() => removeFromCart(item.id)}>
@@ -198,7 +198,7 @@ export default function CartScreen({ navigation }) {
         >
           <Icon.ShoppingBag width={90} height={90} stroke="#9CA3AF" />
           <Text style={{ marginTop: 20, fontSize: 18, color: "#6B7280" }}>
-            Tu carrito está vacío.
+            Your cart is empty.
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
@@ -211,7 +211,7 @@ export default function CartScreen({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-              Ir al inicio
+              Go to Home
             </Text>
           </TouchableOpacity>
         </View>

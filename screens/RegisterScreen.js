@@ -24,8 +24,8 @@ const RegisterScreen = () => {
     if (!email || !password || !name) {
       Toast.show({
         type: "error",
-        text1: "Campos incompletos",
-        text2: "Completa todos los campos requeridos",
+        text1: "Incomplete fields",
+        text2: "Complete all required fields",
       });
       return;
     }
@@ -41,7 +41,7 @@ const RegisterScreen = () => {
       setLoading(false);
       Toast.show({
         type: "error",
-        text1: "Registro fallido",
+        text1: "Failed registration",
         text2: error.message,
       });
       return;
@@ -53,7 +53,7 @@ const RegisterScreen = () => {
       setLoading(false);
       Toast.show({
         type: "error",
-        text1: "No se obtuvo el ID del usuario",
+        text1: "User ID not obtained",
       });
       return;
     }
@@ -68,18 +68,18 @@ const RegisterScreen = () => {
     });
 
     if (upsertError) {
-      console.error("🛑 Error al guardar en tabla Users:", upsertError);
+      console.error("🛑 Error saving to Users table:", upsertError);
 
       Toast.show({
         type: "error",
-        text1: "Error al guardar en la tabla Users",
+        text1: "Error saving to Users table",
         text2: upsertError.message,
       });
     } else {
       Toast.show({
         type: "success",
-        text1: "Usuario registrado correctamente",
-        text2: "Verifica tu correo antes de iniciar sesión",
+        text1: "User successfully registered",
+        text2: "Verify your email before logging in",
       });
 
       navigation.reset({
@@ -97,30 +97,30 @@ const RegisterScreen = () => {
         source={require("../assets/images/splash.png")}
         style={styles.logo}
       />
-      <Text style={styles.title}>Crear cuenta</Text>
+      <Text style={styles.title}>Create Account</Text>
 
       <TextInput
-        placeholder="Nombre completo"
+        placeholder="Full Name"
         style={styles.input}
         value={name}
         onChangeText={setName}
       />
       <TextInput
-        placeholder="Teléfono"
+        placeholder="Phone"
         style={styles.input}
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"
       />
       <TextInput
-        placeholder="Correo electrónico"
+        placeholder="Email"
         style={styles.input}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
       />
       <TextInput
-        placeholder="Contraseña"
+        placeholder="Password"
         style={styles.input}
         value={password}
         onChangeText={setPassword}
@@ -131,14 +131,14 @@ const RegisterScreen = () => {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Registrarse</Text>
+          <Text style={styles.buttonText}>Create</Text>
         )}
       </Pressable>
 
       <Text style={styles.loginText}>
-        ¿Ya tienes una cuenta?{" "}
+        Do you have account?{" "}
         <Text style={styles.loginLink} onPress={() => navigation.goBack()}>
-          Inicia sesión
+          Login
         </Text>
       </Text>
     </View>
