@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f7f7f7",
     padding: 20,
   },
-  logo: { width: 100, height: 100, marginBottom: 20 },
+  logo: { width: 200, height: 200, marginBottom: 20 },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 20, color: "#333" },
   input: {
     width: "90%",

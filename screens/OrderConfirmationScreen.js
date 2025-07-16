@@ -8,11 +8,16 @@ import {
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { supabase } from "../constants/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const TIMER_KEY = "order_timer_start";
 
 export default function OrderConfirmationScreen() {
   const { params } = useRoute();
   const navigation = useNavigation();
   const [totalPoints, setTotalPoints] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [loadingTimer, setLoadingTimer] = useState(true);
 
   useEffect(() => {
     const fetchUserPoints = async () => {
@@ -35,6 +40,42 @@ export default function OrderConfirmationScreen() {
 
     fetchUserPoints();
   }, []);
+
+  useEffect(() => {
+    const initTimer = async () => {
+      const savedStartTime = await AsyncStorage.getItem(TIMER_KEY);
+      let startTime = savedStartTime ? parseInt(savedStartTime) : null;
+
+      if (!startTime) {
+        // Guardamos el timestamp actual si no existe
+        startTime = Date.now();
+        await AsyncStorage.setItem(TIMER_KEY, startTime.toString());
+      }
+
+      const updateTimeLeft = () => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - startTime) / 1000);
+        const remaining = 900 - elapsed;
+        setTimeLeft(remaining > 0 ? remaining : 0);
+      };
+
+      updateTimeLeft();
+      setLoadingTimer(false);
+
+      const interval = setInterval(updateTimeLeft, 1000);
+      return () => clearInterval(interval);
+    };
+
+    initTimer();
+  }, []);
+
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const sec = (seconds % 60).toString().padStart(2, "0");
+    return `${min}:${sec}`;
+  };
 
   return (
     <View
@@ -82,9 +123,24 @@ export default function OrderConfirmationScreen() {
         </Text>
       )}
 
-      <Text style={{ fontSize: 15, marginVertical: 8 }}>
-        Your order is ready for pickup
-      </Text>
+      {loadingTimer ? (
+        <ActivityIndicator size="large" color="#FFA500" />
+      ) : timeLeft > 0 ? (
+        <Text
+          style={{
+            fontSize: 36,
+            color: "#FFA500",
+            fontWeight: "bold",
+            marginTop: 20,
+          }}
+        >
+          ⏳ {formatTime(timeLeft)}
+        </Text>
+      ) : (
+        <Text style={{ fontSize: 20, marginTop: 20, color: "#FF5722" }}>
+          ✅ Your order is ready for pickup
+        </Text>
+      )}
 
       <TouchableOpacity
         onPress={() => navigation.replace("Home")}

@@ -1,4 +1,6 @@
-import React from "react";
+// CartScreen.js
+
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +9,7 @@ import {
   Image,
   Alert,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Animatable from "react-native-animatable";
@@ -14,10 +17,66 @@ import { useCart } from "../context/CartContext";
 import * as Icon from "react-native-feather";
 import { supabase } from "../constants/supabase";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const TIMER_KEY = "order_timer_start";
 
 export default function CartScreen({ navigation }) {
   const { cartItems, removeFromCart, getTotalItems, getTotalPrice, clearCart } =
     useCart();
+
+  const [orderInProgress, setOrderInProgress] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [orderData, setOrderData] = useState(null); // Para mostrar número y puntos
+
+  useEffect(() => {
+    const checkActiveOrder = async () => {
+      const savedStartTime = await AsyncStorage.getItem(TIMER_KEY);
+      if (!savedStartTime) return;
+
+      const elapsed = Math.floor(
+        (Date.now() - parseInt(savedStartTime)) / 1000
+      );
+      const remaining = 900 - elapsed;
+
+      if (remaining > 0) {
+        setTimeLeft(remaining);
+        setOrderInProgress(true);
+
+        const savedData = await AsyncStorage.getItem("order_info");
+        if (savedData) {
+          setOrderData(JSON.parse(savedData));
+        }
+
+        const interval = setInterval(() => {
+          const updatedElapsed = Math.floor(
+            (Date.now() - parseInt(savedStartTime)) / 1000
+          );
+          const updatedRemaining = 900 - updatedElapsed;
+          if (updatedRemaining <= 0) {
+            clearInterval(interval);
+            setOrderInProgress(false);
+            AsyncStorage.removeItem(TIMER_KEY);
+            AsyncStorage.removeItem("order_info");
+          } else {
+            setTimeLeft(updatedRemaining);
+          }
+        }, 1000);
+
+        return () => clearInterval(interval);
+      }
+    };
+
+    checkActiveOrder();
+  }, []);
+
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const sec = (seconds % 60).toString().padStart(2, "0");
+    return `${min}:${sec}`;
+  };
 
   const generateOrderNumber = () => {
     const now = new Date();
@@ -61,7 +120,6 @@ export default function CartScreen({ navigation }) {
       .select();
 
     if (orderError || !insertedOrders) {
-      console.error("❌ Error saving the order:", orderError);
       Toast.show({
         type: "error",
         text1: "❌ Error saving the order",
@@ -70,6 +128,7 @@ export default function CartScreen({ navigation }) {
       return false;
     }
 
+    // Ingredientes
     const ingredientRows = [];
     insertedOrders.forEach((order, index) => {
       const product = items[index];
@@ -88,17 +147,17 @@ export default function CartScreen({ navigation }) {
         .insert(ingredientRows);
 
       if (ingredientError) {
-        console.error("❌ Error saving ingredients:", ingredientError);
         Toast.show({
           type: "error",
-          text1: "❌  Error saving ingredients",
+          text1: "❌ Error saving ingredients",
           text2: ingredientError.message,
         });
         return false;
       }
     }
 
-    const { data: userData, error: fetchUserError } = await supabase
+    // Puntos
+    const { data: userData } = await supabase
       .from("Users")
       .select("points")
       .eq("id", user.id)
@@ -107,15 +166,17 @@ export default function CartScreen({ navigation }) {
     const currentPoints = userData?.points || 0;
     const newTotalPoints = currentPoints + earnedPoints;
 
-    const { error: updateError } = await supabase
+    await supabase
       .from("Users")
       .update({ points: newTotalPoints })
       .eq("id", user.id);
 
-    if (updateError) {
-      console.error("❌ Points could not be updated:", updateError);
-      return false;
-    }
+    // Guardar estado de orden y temporizador
+    await AsyncStorage.setItem(TIMER_KEY, Date.now().toString());
+    await AsyncStorage.setItem(
+      "order_info",
+      JSON.stringify({ orderNumber, earnedPoints })
+    );
 
     return { orderNumber, earnedPoints };
   };
@@ -125,19 +186,14 @@ export default function CartScreen({ navigation }) {
       Platform.OS === "web"
         ? window.confirm("Do you want to confirm and send your order?")
         : await new Promise((resolve) =>
-            Alert.alert(
-              "Confirmation",
-              "You wish to confirm and send your order?",
-              [
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                  onPress: () => resolve(false),
-                },
-                { text: "Confirm", onPress: () => resolve(true) },
-              ],
-              { cancelable: true }
-            )
+            Alert.alert("Confirmation", "Confirm and send your order?", [
+              {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => resolve(false),
+              },
+              { text: "Confirm", onPress: () => resolve(true) },
+            ])
           );
 
     if (!confirmed) return;
@@ -145,10 +201,7 @@ export default function CartScreen({ navigation }) {
     const result = await saveOrderOnSupabase(cartItems);
     if (result) {
       clearCart();
-      navigation.replace("OrderConfirmation", {
-        orderNumber: result.orderNumber,
-        points: result.earnedPoints,
-      });
+      navigation.replace("OrderConfirmation", result);
     }
   };
 
@@ -181,6 +234,68 @@ export default function CartScreen({ navigation }) {
     </View>
   );
 
+  // 👉 VISTA DE ORDEN EN CURSO
+  if (orderInProgress && orderData) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Image
+          source={require("../assets/images/success.png")}
+          style={{ width: 120, height: 120, marginBottom: 20 }}
+        />
+        <Text style={{ fontSize: 26, fontWeight: "bold", color: "#4CAF50" }}>
+          ¡Successful order!
+        </Text>
+        <Text style={{ fontSize: 16, marginTop: 10 }}>
+          Your order number is:
+        </Text>
+        <Text
+          style={{
+            fontSize: 22,
+            fontWeight: "bold",
+            color: "#333",
+            marginBottom: 10,
+          }}
+        >
+          {orderData.orderNumber}
+        </Text>
+        <Text style={{ fontSize: 16, marginBottom: 10 }}>
+          🎁 You earned{" "}
+          <Text style={{ fontWeight: "bold" }}>{orderData.earnedPoints}</Text>{" "}
+          points.
+        </Text>
+        <Text
+          style={{
+            fontSize: 36,
+            color: "#FFA500",
+            fontWeight: "bold",
+            marginTop: 20,
+          }}
+        >
+          ⏳ {formatTime(timeLeft)}
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Home")}
+          style={{
+            marginTop: 30,
+            backgroundColor: "#FFA500",
+            padding: 15,
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontWeight: "bold" }}>Go to home</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  // 👉 VISTA NORMAL DEL CARRITO
   return (
     <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
@@ -223,7 +338,6 @@ export default function CartScreen({ navigation }) {
             renderItem={renderItem}
             contentContainerStyle={{ paddingBottom: 100 }}
           />
-
           <Animatable.View
             animation="bounceInUp"
             duration={1000}
@@ -242,7 +356,6 @@ export default function CartScreen({ navigation }) {
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
               Total: ${getTotalPrice().toFixed(2)}
             </Text>
-
             <TouchableOpacity
               onPress={handleCheckout}
               style={{
