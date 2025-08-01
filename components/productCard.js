@@ -45,7 +45,7 @@ export default function ProductCard({ item }) {
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             overflow: "hidden",
-            backgroundColor: "#f3f4f6", // para evitar fondo blanco si la imagen no carga
+            backgroundColor: "#f3f4f6", 
           }}
         >
           <Image

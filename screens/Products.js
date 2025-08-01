@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,7 +7,6 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
-import React, { useState, useEffect } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Icon from "react-native-feather";
 import { themeColors } from "../theme";
@@ -25,6 +25,17 @@ export default function Products() {
   const [totalPrice, setTotalPrice] = useState(item.price || 10);
   const [ingredients, setIngredients] = useState([]);
   const [selectedIngredients, setSelectedIngredients] = useState({});
+
+  const comboItems = [
+    { id: "combo_soda", name: "Soda" },
+    { id: "combo_cookie", name: "Cookie" },
+    { id: "combo_chips", name: "Chips" },
+  ];
+
+  const restrictedComboCategories = ["Sodas", "Iced Coffee", "Smoothies"];
+
+  const showSize = item.category === "Coffee";
+  const showCombo = !restrictedComboCategories.includes(item.category);
 
   const updateQuantity = (type) => {
     let newQuantity = type === "increase" ? quantity + 1 : quantity - 1;
@@ -55,6 +66,9 @@ export default function Products() {
         data.forEach((ing) => {
           initialSelection[ing.id] = true;
         });
+        comboItems.forEach((combo) => {
+          initialSelection[combo.id] = false;
+        });
         setSelectedIngredients(initialSelection);
       }
     };
@@ -65,7 +79,7 @@ export default function Products() {
   const handleAddToCart = () => {
     const selectedIds = Object.entries(selectedIngredients)
       .filter(([_, value]) => value)
-      .map(([id]) => parseInt(id));
+      .map(([id]) => id);
 
     addToCart(
       {
@@ -85,7 +99,6 @@ export default function Products() {
   const taxAmount = totalPrice * 0.06;
   const finalTotal = totalPrice + taxAmount;
 
-  // Detectar bebidas altas
   const isDrink =
     item.name?.toLowerCase().includes("jarritos") ||
     item.name?.toLowerCase().includes("drink") ||
@@ -93,9 +106,7 @@ export default function Products() {
     item.name?.toLowerCase().includes("bottle") ||
     item.name?.toLowerCase().includes("beverage");
 
-  const imageHeight = isDrink
-    ? screenWidth * 1.6 // más alto para bebidas
-    : screenWidth * 0.75; // estándar para alimentos
+  const imageHeight = isDrink ? screenWidth * 1.6 : screenWidth * 0.75;
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -251,48 +262,150 @@ export default function Products() {
           </View>
 
           <Text style={{ marginTop: 20, fontWeight: "bold", fontSize: 18 }}>
-            Ingredients:
+            Ingredients or Size:
           </Text>
-          {ingredients.map((ing) => (
-            <TouchableOpacity
-              key={ing.id}
-              onPress={() => toggleIngredient(ing.id)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 10,
-              }}
-            >
-              <View
+          {ingredients
+            .filter((ing) => !["12.5 oz", "16.9 oz"].includes(ing.name))
+            .map((ing) => (
+              <TouchableOpacity
+                key={ing.id}
+                onPress={() => toggleIngredient(ing.id)}
                 style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 4,
-                  borderWidth: 2,
-                  borderColor: "#FFA500",
-                  marginRight: 10,
-                  justifyContent: "center",
+                  flexDirection: "row",
                   alignItems: "center",
-                  backgroundColor: selectedIngredients[ing.id]
-                    ? "#FFA500"
-                    : "white",
+                  marginTop: 10,
                 }}
               >
-                {selectedIngredients[ing.id] && (
-                  <Text
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 4,
+                    borderWidth: 2,
+                    borderColor: "#FFA500",
+                    marginRight: 10,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: selectedIngredients[ing.id]
+                      ? "#FFA500"
+                      : "white",
+                  }}
+                >
+                  {selectedIngredients[ing.id] && (
+                    <Text
+                      style={{
+                        color: "white",
+                        fontSize: 14,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      ✓
+                    </Text>
+                  )}
+                </View>
+                <Text style={{ fontSize: 16 }}>{ing.name}</Text>
+              </TouchableOpacity>
+            ))}
+
+          {showSize && (
+            <>
+              <Text style={{ marginTop: 20, fontWeight: "bold", fontSize: 18 }}>
+                Size:
+              </Text>
+              {ingredients
+                .filter(
+                  (ing) => ing.name === "12.5 oz" || ing.name === "16.9 oz"
+                )
+                .map((size) => (
+                  <TouchableOpacity
+                    key={size.id}
+                    onPress={() => toggleIngredient(size.id)}
                     style={{
-                      color: "white",
-                      fontSize: 14,
-                      fontWeight: "bold",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 10,
                     }}
                   >
-                    ✓
-                  </Text>
-                )}
-              </View>
-              <Text style={{ fontSize: 16 }}>{ing.name}</Text>
-            </TouchableOpacity>
-          ))}
+                    <View
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        borderWidth: 2,
+                        borderColor: "#FFA500",
+                        marginRight: 10,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: selectedIngredients[size.id]
+                          ? "#FFA500"
+                          : "white",
+                      }}
+                    >
+                      {selectedIngredients[size.id] && (
+                        <Text
+                          style={{
+                            color: "white",
+                            fontSize: 14,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          ✓
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={{ fontSize: 16 }}>{size.name}</Text>
+                  </TouchableOpacity>
+                ))}
+            </>
+          )}
+
+          {showCombo && (
+            <>
+              <Text style={{ marginTop: 20, fontWeight: "bold", fontSize: 18 }}>
+                Combo:
+              </Text>
+              {comboItems.map((combo) => (
+                <TouchableOpacity
+                  key={combo.id}
+                  onPress={() => toggleIngredient(combo.id)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginTop: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      borderWidth: 2,
+                      borderColor: "#FFA500",
+                      marginRight: 10,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      backgroundColor: selectedIngredients[combo.id]
+                        ? "#FFA500"
+                        : "white",
+                    }}
+                  >
+                    {selectedIngredients[combo.id] && (
+                      <Text
+                        style={{
+                          color: "white",
+                          fontSize: 14,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 16 }}>{combo.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
         </View>
       </ScrollView>
 
