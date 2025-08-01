@@ -19,7 +19,7 @@
     "expo": "~53.0.7",
     "expo-auth-session": "~6.1.5",
     "expo-device": "~7.1.4",
-    "expo-notifications": "~0.31.3",
+    "expo-notifications": "~0.31.4",
     "expo-status-bar": "~2.2.3",
     "expo-web-browser": "~14.1.6",
     "nativewind": "^4.1.23",
@@ -35,8 +35,10 @@
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.3.0",
     "react-native-url-polyfill": "^2.0.0",
+    "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.20.0",
-    "ws": "7.5.10"
+    "ws": "7.5.10",
+    "expo-constants": "~17.1.7"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

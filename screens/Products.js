@@ -1,4 +1,11 @@
-import { View, Text, Image, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+} from "react-native";
 import React, { useState, useEffect } from "react";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as Icon from "react-native-feather";
@@ -10,7 +17,9 @@ export default function Products() {
   const { params } = useRoute();
   const navigation = useNavigation();
   const { addToCart } = useCart();
-  let item = params;
+  const item = params;
+
+  const screenWidth = Dimensions.get("window").width;
 
   const [quantity, setQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState(item.price || 10);
@@ -58,7 +67,6 @@ export default function Products() {
       .filter(([_, value]) => value)
       .map(([id]) => parseInt(id));
 
-    // Agrega al carrito con los ingredientes seleccionados
     addToCart(
       {
         id: item.id,
@@ -66,17 +74,28 @@ export default function Products() {
         image: item.image,
         price: item.price,
         description: item.description,
-        ingredients: selectedIds, // solo se guarda en contexto
+        ingredients: selectedIds,
       },
       quantity
     );
 
-    // Redirige al Home
     navigation.navigate("Home");
   };
 
   const taxAmount = totalPrice * 0.06;
   const finalTotal = totalPrice + taxAmount;
+
+  // Detectar bebidas altas
+  const isDrink =
+    item.name?.toLowerCase().includes("jarritos") ||
+    item.name?.toLowerCase().includes("drink") ||
+    item.name?.toLowerCase().includes("soda") ||
+    item.name?.toLowerCase().includes("bottle") ||
+    item.name?.toLowerCase().includes("beverage");
+
+  const imageHeight = isDrink
+    ? screenWidth * 1.6 // más alto para bebidas
+    : screenWidth * 0.75; // estándar para alimentos
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
@@ -84,11 +103,18 @@ export default function Products() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        <View className="relative">
+        <View
+          style={{
+            width: screenWidth,
+            height: imageHeight,
+            backgroundColor: "#f3f4f6",
+            position: "relative",
+          }}
+        >
           <Image
             source={{ uri: item.image }}
-            style={{ width: "100%", height: 280 }}
-            resizeMode="cover"
+            style={{ width: "100%", height: "100%" }}
+            resizeMode={isDrink ? "contain" : "cover"}
           />
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -254,7 +280,11 @@ export default function Products() {
               >
                 {selectedIngredients[ing.id] && (
                   <Text
-                    style={{ color: "white", fontSize: 14, fontWeight: "bold" }}
+                    style={{
+                      color: "white",
+                      fontSize: 14,
+                      fontWeight: "bold",
+                    }}
                   >
                     ✓
                   </Text>
@@ -280,7 +310,6 @@ export default function Products() {
           justifyContent: "space-between",
           padding: 15,
           elevation: 5,
-          marginBottom: 20,
         }}
       >
         <View
