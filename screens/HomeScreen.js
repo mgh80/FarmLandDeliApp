@@ -8,15 +8,9 @@ import {
   Pressable,
   ScrollView,
   TouchableWithoutFeedback,
-  SafeAreaView as RNSafeAreaView,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  MaterialCommunityIcons,
-  FontAwesome5,
-  Ionicons,
-} from "@expo/vector-icons";
+import * as Icon from "react-native-feather";
 import Categories from "../components/categories";
 import FeaturedRow from "../components/featuredRow";
 import Carousel from "../components/carousel";
@@ -25,7 +19,6 @@ import { supabase } from "../constants/supabase";
 import { useProducts, useCategories } from "../constants";
 import { useCart } from "../context/CartContext";
 import RewardsSection from "../components/rewardsSection";
-import * as Icon from "react-native-feather";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -52,17 +45,13 @@ export default function HomeScreen() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("Users")
           .select("name")
           .eq("id", user.id)
           .single();
 
-        if (!error && data?.name) {
-          setUserName(data.name);
-        } else {
-          setUserName(user.email); // fallback
-        }
+        if (data) setUserName(data.name);
       }
     };
 
@@ -71,65 +60,60 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
-      {/* Saludo */}
+      {/* Saludo superior */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 16,
-          marginTop: 12,
-          marginBottom: 4,
+          marginTop: 10,
         }}
       >
-        <Ionicons name="person-circle-outline" size={32} color="#4a90e2" />
+        <Icon.User width={24} height={24} stroke="#4a90e2" />
         <Text
           style={{
             fontSize: 18,
-            marginLeft: 8,
-            fontWeight: "bold",
+            fontWeight: "600",
             color: "#4a90e2",
+            marginLeft: 8,
           }}
-          numberOfLines={1}
         >
-          ¡Hello!, {userName}!
+          ¡Hello! {userName}
         </Text>
       </View>
 
       {/* Buscador */}
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: "#fff7f0",
-            borderRadius: 30,
-            paddingHorizontal: 18,
+            backgroundColor: "#e0f2fe",
+            borderRadius: 25,
+            paddingHorizontal: 15,
             paddingVertical: 10,
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.1,
-            shadowRadius: 5,
-            elevation: 4,
-            borderWidth: 1,
-            borderColor: "#F58F14",
+            shadowRadius: 4,
+            elevation: 2,
           }}
         >
-          <Icon.Search width={22} height={22} stroke="#F58F14" />
+          <Icon.Search width={20} height={20} stroke="#3b82f6" />
           <TextInput
-            placeholder="Search products..."
-            placeholderTextColor="#F58F14"
+            placeholder="Search products"
+            placeholderTextColor="#60a5fa"
             style={{
               flex: 1,
-              marginLeft: 12,
-              fontSize: 17,
-              color: "#1F2937",
+              marginLeft: 10,
+              fontSize: 16,
+              color: "#1E3A8A",
             }}
             value={searchText}
             onChangeText={setSearchText}
           />
           {searchText !== "" && (
             <TouchableOpacity onPress={() => setSearchText("")}>
-              <Icon.X width={22} height={22} stroke="#F58F14" />
+              <Icon.X width={20} height={20} stroke="#60a5fa" />
             </TouchableOpacity>
           )}
         </View>
@@ -145,20 +129,15 @@ export default function HomeScreen() {
           setActiveCategory={setActiveCategory}
         />
         <Carousel />
-
         {categories.map((cat) => {
           const productsInCategory = products.filter(
             (p) => p.CategoryId === cat.Id
           );
-
           if (activeCategory && cat.Name !== activeCategory) return null;
-
           const filteredProducts = productsInCategory.filter((p) =>
             p.Name.toLowerCase().includes(searchText.toLowerCase())
           );
-
           if (filteredProducts.length === 0) return null;
-
           return (
             <FeaturedRow
               key={cat.Id}
@@ -168,7 +147,6 @@ export default function HomeScreen() {
             />
           );
         })}
-
         <RewardsSection />
       </ScrollView>
 
@@ -181,25 +159,25 @@ export default function HomeScreen() {
           paddingVertical: 10,
           borderTopWidth: 1,
           borderColor: "#e5e7eb",
-          backgroundColor: "#fef9f4",
+          backgroundColor: "#fff",
         }}
       >
         <Pressable
-          onPressIn={() => setPressedIcon("Home")}
+          onPressIn={() => setPressedIcon("home")}
           onPressOut={() => setPressedIcon(null)}
           style={{ alignItems: "center" }}
         >
-          <MaterialCommunityIcons
-            name="home-circle"
-            size={30}
-            color={pressedIcon === "Home" ? "#f97316" : "#9CA3AF"}
+          <Icon.Home
+            width={26}
+            height={26}
+            stroke={pressedIcon === "home" ? "#1F2937" : "#6B7280"}
           />
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 10,
               marginTop: 2,
-              color: pressedIcon === "Home" ? "#f97316" : "#6B7280",
-              fontWeight: pressedIcon === "Home" ? "600" : "400",
+              color: pressedIcon === "home" ? "#1F2937" : "#6B7280",
+              fontWeight: pressedIcon === "home" ? "600" : "400",
             }}
           >
             Home
@@ -208,14 +186,14 @@ export default function HomeScreen() {
 
         <Pressable
           onPress={() => navigation.navigate("Cart")}
-          onPressIn={() => setPressedIcon("Cart")}
+          onPressIn={() => setPressedIcon("cart")}
           onPressOut={() => setPressedIcon(null)}
           style={{ position: "relative", alignItems: "center" }}
         >
-          <FontAwesome5
-            name="shopping-cart"
-            size={24}
-            color={pressedIcon === "Cart" ? "#f97316" : "#9CA3AF"}
+          <Icon.ShoppingCart
+            width={26}
+            height={26}
+            stroke={pressedIcon === "cart" ? "#1F2937" : "#6B7280"}
           />
           {getTotalItems() > 0 && (
             <View
@@ -223,7 +201,7 @@ export default function HomeScreen() {
                 position: "absolute",
                 right: -8,
                 top: -4,
-                backgroundColor: "#f97316",
+                backgroundColor: "#FFA500",
                 borderRadius: 10,
                 paddingHorizontal: 5,
                 paddingVertical: 1,
@@ -241,10 +219,10 @@ export default function HomeScreen() {
           )}
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 10,
               marginTop: 2,
-              color: pressedIcon === "Cart" ? "#f97316" : "#6B7280",
-              fontWeight: pressedIcon === "Cart" ? "600" : "400",
+              color: pressedIcon === "cart" ? "#1F2937" : "#6B7280",
+              fontWeight: pressedIcon === "cart" ? "600" : "400",
             }}
           >
             Cart
@@ -252,22 +230,22 @@ export default function HomeScreen() {
         </Pressable>
 
         <Pressable
-          onPressIn={() => setPressedIcon("Profile")}
+          onPressIn={() => setPressedIcon("profile")}
           onPressOut={() => setPressedIcon(null)}
           onPress={() => setShowSidebar(true)}
           style={{ alignItems: "center" }}
         >
-          <Ionicons
-            name="person-circle"
-            size={28}
-            color={pressedIcon === "Profile" ? "#f97316" : "#9CA3AF"}
+          <Icon.User
+            width={24}
+            height={24}
+            stroke={pressedIcon === "profile" ? "#1F2937" : "#6B7280"}
           />
           <Text
             style={{
-              fontSize: 11,
+              fontSize: 10,
               marginTop: 2,
-              color: pressedIcon === "Profile" ? "#f97316" : "#6B7280",
-              fontWeight: pressedIcon === "Profile" ? "600" : "400",
+              color: pressedIcon === "profile" ? "#1F2937" : "#6B7280",
+              fontWeight: pressedIcon === "profile" ? "600" : "400",
             }}
           >
             Profile
@@ -288,97 +266,77 @@ export default function HomeScreen() {
               flex: 1,
               backgroundColor: "rgba(0,0,0,0.4)",
               justifyContent: "flex-end",
+              flexDirection: "row",
             }}
           >
-            <TouchableWithoutFeedback>
-              <View
+            <SafeAreaView
+              style={{
+                backgroundColor: "white",
+                width: "70%",
+                height: "100%",
+                padding: 20,
+              }}
+            >
+              <Text style={{ fontSize: 22, fontWeight: "bold" }}>Perfil</Text>
+              <Text
+                style={{ fontSize: 16, color: "#4a90e2", marginBottom: 30 }}
+              >
+                {userName}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSidebar(false);
+                  navigation.navigate("OrderHistory");
+                }}
+                style={{ paddingVertical: 10 }}
+              >
+                <Text style={{ fontSize: 16, color: "#1F2937" }}>
+                  🧾 Order History
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowSidebar(false);
+                  navigation.navigate("Points");
+                }}
+                style={{ paddingVertical: 10 }}
+              >
+                <Text style={{ fontSize: 16, color: "#1F2937" }}>
+                  ⭐ My Points
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleLogout}
                 style={{
-                  backgroundColor: "white",
-                  width: "70%",
-                  height: "100%",
-                  padding: 20,
-                  position: "absolute",
-                  right: 0,
-                  top: 0,
+                  marginTop: "auto",
+                  backgroundColor: "#ff6347",
+                  padding: 12,
+                  borderRadius: 8,
                 }}
               >
-                <RNSafeAreaView>
-                  <Text
-                    style={{
-                      fontSize: 22,
-                      fontWeight: "bold",
-                      marginBottom: 10,
-                    }}
-                  >
-                    Profile
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 20,
-                      color: "#4a90e2",
-                      fontWeight: "600",
-                      marginBottom: 30,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {userName}
-                  </Text>
-                </RNSafeAreaView>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowSidebar(false);
-                    navigation.navigate("OrderHistory");
-                  }}
-                  style={{ paddingVertical: 10 }}
-                >
-                  <Text style={{ fontSize: 16, color: "#1F2937" }}>
-                    🧾 Order History
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowSidebar(false);
-                    navigation.navigate("Points");
-                  }}
-                  style={{ paddingVertical: 10 }}
-                >
-                  <Text style={{ fontSize: 16, color: "#1F2937" }}>
-                    ⭐ My Points
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleLogout}
+                <Text
                   style={{
-                    marginTop: "auto",
-                    backgroundColor: "#ff6347",
-                    padding: 12,
-                    borderRadius: 8,
+                    color: "white",
+                    textAlign: "center",
+                    fontWeight: "bold",
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "white",
-                      textAlign: "center",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Logout
-                  </Text>
-                </TouchableOpacity>
+                  Logout
+                </Text>
+              </TouchableOpacity>
 
-                <Pressable
-                  onPress={() => setShowSidebar(false)}
-                  style={{ marginTop: 15 }}
-                >
-                  <Text style={{ color: "gray", textAlign: "center" }}>
-                    Close
-                  </Text>
-                </Pressable>
-              </View>
-            </TouchableWithoutFeedback>
+              <Pressable
+                onPress={() => setShowSidebar(false)}
+                style={{ marginTop: 15 }}
+              >
+                <Text style={{ color: "gray", textAlign: "center" }}>
+                  Close
+                </Text>
+              </Pressable>
+            </SafeAreaView>
           </View>
         </TouchableWithoutFeedback>
       </Modal>

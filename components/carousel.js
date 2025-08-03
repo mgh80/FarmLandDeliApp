@@ -6,15 +6,20 @@ import {
   Dimensions,
   StyleSheet,
   ActivityIndicator,
+  Text,
+  Modal,
+  TouchableWithoutFeedback,
+  TouchableOpacity,
 } from "react-native";
 import { supabase } from "../constants/supabase";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 export default function Carousel() {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedImage, setSelectedImage] = useState(null);
   const flatListRef = useRef(null);
 
   useEffect(() => {
@@ -45,7 +50,7 @@ export default function Carousel() {
         animated: true,
       });
       setActiveIndex(nextIndex);
-    }, 3000);
+    }, 5000); // 5 segundos
 
     return () => clearInterval(interval);
   }, [activeIndex, banners]);
@@ -62,6 +67,9 @@ export default function Carousel() {
 
   return (
     <View style={styles.container}>
+      {/* 🔵 Título Offers */}
+      <Text style={styles.title}>Offers</Text>
+
       <FlatList
         ref={flatListRef}
         data={banners}
@@ -80,16 +88,19 @@ export default function Carousel() {
           setActiveIndex(index);
         }}
         renderItem={({ item }) => (
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: item.image_url }}
-              style={styles.image}
-              resizeMode="contain" // <- Para que no se recorte la imagen
-            />
-          </View>
+          <TouchableOpacity onPress={() => setSelectedImage(item.image_url)}>
+            <View style={styles.imageContainer}>
+              <Image
+                source={{ uri: item.image_url }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+            </View>
+          </TouchableOpacity>
         )}
       />
 
+      {/* Dots indicadores */}
       <View style={styles.dotsContainer}>
         {banners.map((_, index) => (
           <View
@@ -98,6 +109,19 @@ export default function Carousel() {
           />
         ))}
       </View>
+
+      {/* 🔍 Modal de imagen ampliada */}
+      <Modal visible={!!selectedImage} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setSelectedImage(null)}>
+          <View style={styles.modalContainer}>
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -107,6 +131,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 24,
   },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    color: "#1f2937",
+  },
   loadingContainer: {
     marginTop: 16,
     marginBottom: 24,
@@ -115,14 +146,14 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: width,
-    height: 160,
-    alignItems: "center",
+    height: 180,
     justifyContent: "center",
-    backgroundColor: "#fff",
+    alignItems: "center",
   },
   image: {
-    width: "100%",
+    width: "94%",
     height: "100%",
+    borderRadius: 12,
   },
   dotsContainer: {
     flexDirection: "row",
@@ -133,7 +164,17 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#888",
+    backgroundColor: "#4a90e2",
     marginHorizontal: 4,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenImage: {
+    width: width,
+    height: height,
   },
 });
