@@ -26,15 +26,23 @@ export default function CartScreen({ navigation }) {
   const [timeLeft, setTimeLeft] = useState(0);
   const [orderData, setOrderData] = useState(null);
 
+  // Limpiar temporizador y datos de orden si no hay orden activa (al entrar)
   useEffect(() => {
     const checkActiveOrder = async () => {
       const savedStartTime = await AsyncStorage.getItem(TIMER_KEY);
-      if (!savedStartTime) return;
+      if (!savedStartTime) {
+        // Limpia todo si no hay temporizador (no hay orden en curso)
+        await AsyncStorage.removeItem("order_info");
+        setOrderInProgress(false);
+        setOrderData(null);
+        setTimeLeft(0);
+        return;
+      }
 
       const elapsed = Math.floor(
         (Date.now() - parseInt(savedStartTime)) / 1000
       );
-      const remaining = 900 - elapsed;
+      const remaining = 900 - elapsed; // 15 minutos
 
       if (remaining > 0) {
         setTimeLeft(remaining);
@@ -61,6 +69,13 @@ export default function CartScreen({ navigation }) {
         }, 1000);
 
         return () => clearInterval(interval);
+      } else {
+        // Si el temporizador ya expiró, limpia los datos
+        await AsyncStorage.removeItem(TIMER_KEY);
+        await AsyncStorage.removeItem("order_info");
+        setOrderInProgress(false);
+        setOrderData(null);
+        setTimeLeft(0);
       }
     };
 
@@ -82,7 +97,7 @@ export default function CartScreen({ navigation }) {
     return `ORD-${datePart}-${randomPart}`;
   };
 
-  // ----------- AJUSTE: Calcular el precio total con TAX incluido ------------
+  // ----------- Calcular el precio total con TAX incluido ------------
   // 6% de tax sobre el subtotal
   const getTotalWithTax = () => {
     return getTotalPrice() * 1.06;
@@ -104,16 +119,13 @@ export default function CartScreen({ navigation }) {
     }
 
     const orderNumber = generateOrderNumber();
-    // --- Aquí calculamos el total final de la ORDEN (con tax) ---
     const total = Number(getTotalWithTax().toFixed(2));
     const earnedPoints = Math.floor(total);
 
-    // Ahora para cada producto en la orden, guardamos el TOTAL FINAL (con tax)
     const orderRows = items.map((item) => ({
       userid: user.id,
       productid: item.id,
       quantity: item.quantity,
-      // 🚩 Guardar el precio unitario * cantidad * 1.06 (con tax)
       price: Number((item.price * item.quantity * 1.06).toFixed(2)),
       statusid: 1,
       date: new Date().toISOString(),
@@ -188,7 +200,12 @@ export default function CartScreen({ navigation }) {
     return { orderNumber, earnedPoints };
   };
 
+  // Ajuste: limpiar temporizador y orden previa antes de guardar la nueva orden
   const handleCheckout = async () => {
+    // Limpiar temporizador y orden anterior
+    await AsyncStorage.removeItem(TIMER_KEY);
+    await AsyncStorage.removeItem("order_info");
+
     const confirmed =
       Platform.OS === "web"
         ? window.confirm("Do you want to confirm and send your order?")

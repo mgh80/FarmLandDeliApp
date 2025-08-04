@@ -11,6 +11,7 @@ import { supabase } from "../constants/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TIMER_KEY = "order_timer_start";
+const ORDER_INFO_KEY = "order_info";
 
 export default function OrderConfirmationScreen() {
   const { params } = useRoute();
@@ -18,7 +19,17 @@ export default function OrderConfirmationScreen() {
   const [totalPoints, setTotalPoints] = useState(null);
   const [timeLeft, setTimeLeft] = useState(60);
   const [loadingTimer, setLoadingTimer] = useState(true);
+  const [isReady, setIsReady] = useState(false);
 
+  // Limpiar temporizador y datos de orden al desmontar
+  useEffect(() => {
+    return () => {
+      AsyncStorage.removeItem(TIMER_KEY);
+      AsyncStorage.removeItem(ORDER_INFO_KEY);
+    };
+  }, []);
+
+  // Traer puntos del usuario
   useEffect(() => {
     const fetchUserPoints = async () => {
       const {
@@ -41,7 +52,9 @@ export default function OrderConfirmationScreen() {
     fetchUserPoints();
   }, []);
 
+  // Temporizador original (15 minutos)
   useEffect(() => {
+    let interval;
     const initTimer = async () => {
       const savedStartTime = await AsyncStorage.getItem(TIMER_KEY);
       let startTime = savedStartTime ? parseInt(savedStartTime) : null;
@@ -62,12 +75,44 @@ export default function OrderConfirmationScreen() {
       updateTimeLeft();
       setLoadingTimer(false);
 
-      const interval = setInterval(updateTimeLeft, 1000);
+      interval = setInterval(() => {
+        // Solo actualizar el timer si NO está lista la orden
+        if (!isReady) updateTimeLeft();
+      }, 1000);
+
       return () => clearInterval(interval);
     };
 
     initTimer();
-  }, []);
+
+    // Limpieza al desmontar el efecto
+    return () => clearInterval(interval);
+  }, [isReady]);
+
+  // Polling para ver si la orden ya fue marcada como lista en el portal web
+  useEffect(() => {
+    let polling;
+    const fetchOrderStatus = async () => {
+      if (!params?.orderNumber) return;
+      const { data, error } = await supabase
+        .from("Orders")
+        .select("orderstatus")
+        .eq("ordernumber", params.orderNumber)
+        .single();
+
+      if (!error && data?.orderstatus === true) {
+        setIsReady(true);
+        setTimeLeft(0);
+      } else {
+        setIsReady(false);
+      }
+    };
+
+    polling = setInterval(fetchOrderStatus, 4000);
+    fetchOrderStatus();
+
+    return () => clearInterval(polling);
+  }, [params?.orderNumber]);
 
   const formatTime = (seconds) => {
     const min = Math.floor(seconds / 60)
@@ -75,6 +120,13 @@ export default function OrderConfirmationScreen() {
       .padStart(2, "0");
     const sec = (seconds % 60).toString().padStart(2, "0");
     return `${min}:${sec}`;
+  };
+
+  // Al pulsar el botón limpiar y navegar
+  const handleGoHome = async () => {
+    await AsyncStorage.removeItem(TIMER_KEY);
+    await AsyncStorage.removeItem(ORDER_INFO_KEY);
+    navigation.replace("Home");
   };
 
   return (
@@ -123,9 +175,14 @@ export default function OrderConfirmationScreen() {
         </Text>
       )}
 
+      {/* Ajuste aquí: Si isReady=true o el timer llegó a 0, muestra el mensaje de orden lista */}
       {loadingTimer ? (
         <ActivityIndicator size="large" color="#FFA500" />
-      ) : timeLeft > 0 ? (
+      ) : isReady || timeLeft <= 0 ? (
+        <Text style={{ fontSize: 20, marginTop: 20, color: "#FF5722" }}>
+          ✅ Your order is ready for pickup
+        </Text>
+      ) : (
         <Text
           style={{
             fontSize: 36,
@@ -136,14 +193,10 @@ export default function OrderConfirmationScreen() {
         >
           ⏳ {formatTime(timeLeft)}
         </Text>
-      ) : (
-        <Text style={{ fontSize: 20, marginTop: 20, color: "#FF5722" }}>
-          ✅ Your order is ready for pickup
-        </Text>
       )}
 
       <TouchableOpacity
-        onPress={() => navigation.replace("Home")}
+        onPress={handleGoHome}
         style={{
           marginTop: 30,
           backgroundColor: "#FFA500",
