@@ -45,7 +45,7 @@ export default function ProductCard({ item }) {
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             overflow: "hidden",
-            backgroundColor: "#f3f4f6", 
+            backgroundColor: "#f3f4f6",
           }}
         >
           <Image
@@ -58,7 +58,7 @@ export default function ProductCard({ item }) {
               width: "100%",
               height: "100%",
             }}
-            resizeMode="contain"
+            resizeMode="cover" // 👈 Este cambio es clave
           />
         </View>
 
