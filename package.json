@@ -21,7 +21,7 @@
     "expo-device": "~7.1.4",
     "expo-notifications": "~0.31.4",
     "expo-status-bar": "~2.2.3",
-    "expo-web-browser": "~14.1.6",
+    "expo-web-browser": "~14.2.0",
     "nativewind": "^4.1.23",
     "react": "19.0.0",
     "react-dom": "19.0.0",
