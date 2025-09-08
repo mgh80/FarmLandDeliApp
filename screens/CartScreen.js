@@ -18,15 +18,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 
 const TIMER_KEY = "order_timer_start";
-
 // 🔗 Cambia esto por tu dominio en Vercel en producción
 // const BACKEND = "https://farm-land-deli-web.vercel.app";
-const BACKEND = "http://192.168.1.7:3000";
+const BACKEND = "http://192.168.1.5:3000";
 
 export default function CartScreen({ navigation }) {
   const { cartItems, removeFromCart, getTotalItems, getTotalPrice, clearCart } =
     useCart();
-
   const [orderInProgress, setOrderInProgress] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [orderData, setOrderData] = useState(null);
@@ -51,7 +49,6 @@ export default function CartScreen({ navigation }) {
       if (remaining > 0) {
         setTimeLeft(remaining);
         setOrderInProgress(true);
-
         const savedData = await AsyncStorage.getItem("order_info");
         if (savedData) setOrderData(JSON.parse(savedData));
 
@@ -60,6 +57,7 @@ export default function CartScreen({ navigation }) {
             (Date.now() - parseInt(savedStartTime)) / 1000
           );
           const updatedRemaining = 900 - updatedElapsed;
+
           if (updatedRemaining <= 0) {
             clearInterval(interval);
             setOrderInProgress(false);
@@ -83,19 +81,20 @@ export default function CartScreen({ navigation }) {
     checkActiveOrder();
   }, []);
 
+  // ✅ formateo de tiempo MM:SS
   const formatTime = (seconds) => {
     const min = Math.floor(seconds / 60)
       .toString()
       .padStart(2, "0");
     const sec = (seconds % 60).toString().padStart(2, "0");
-    return `${min}:${sec}`;
+    return min + ":" + sec;
   };
 
   const generateOrderNumber = () => {
     const now = new Date();
     const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
     const randomPart = Math.floor(1000 + Math.random() * 9000);
-    return `ORD-${datePart}-${randomPart}`;
+    return "ORD-" + datePart + "-" + randomPart;
   };
 
   // 6% TAX
@@ -164,6 +163,7 @@ export default function CartScreen({ navigation }) {
       const { error: ingredientError } = await supabase
         .from("OrderIngredients")
         .insert(ingredientRows);
+
       if (ingredientError) {
         Toast.show({
           type: "error",
@@ -203,43 +203,73 @@ export default function CartScreen({ navigation }) {
   // 1) Crear sesión Hosted Checkout en tu backend
   const createCloverCheckout = async (totalUSD) => {
     try {
-      const r = await fetch(`${BACKEND}/api/clover/hco/create`, {
+      const url = BACKEND + "/api/clover/hco/create";
+      const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: Number(totalUSD.toFixed(2)),
-          currency: "USD",
           referenceId: generateOrderNumber(),
+          // Si quieres enviar los items:
+          // items: cartItems.map(i => ({
+          //   name: i.name,
+          //   unitQty: i.quantity,
+          //   price: Math.round(i.price * i.quantity * 1.06 * 100)
+          // }))
         }),
       });
       if (!r.ok) return null;
-      return await r.json(); // { checkoutId, orderId, checkoutPageUrl }
+      // backend devuelve { checkoutSessionId, checkoutPageUrl }
+      return await r.json();
     } catch (e) {
       return null;
     }
   };
 
-  // 2) Abrir Clover y confirmar estado
-  const openCloverAndConfirm = async (checkoutPageUrl, orderId) => {
-    await WebBrowser.openBrowserAsync(checkoutPageUrl);
-    const started = Date.now();
-    while (Date.now() - started < 90_000) {
-      await new Promise((r) => setTimeout(r, 2500));
-      try {
-        const s = await fetch(
-          `${BACKEND}/api/clover/payment-status?orderId=${orderId}`
-        );
-        if (!s.ok) continue;
-        const data = await s.json();
-        const status = String(data.status || "").toUpperCase();
+  // 2) Abrir Clover y confirmar estado con polling concurrente
+  const openCloverAndConfirm = async (checkoutPageUrl, checkoutSessionId) => {
+    let resolved = false;
 
-        if (["PAID", "SUCCESS", "PAID_SUCCESS"].includes(status)) return true;
-        if (["FAILED", "CANCELED", "CANCELLED"].includes(status)) return false;
-      } catch {
-        // reintenta en el siguiente ciclo
+    const poll = (async () => {
+      const started = Date.now();
+      while (Date.now() - started < 90_000 && !resolved) {
+        await new Promise((r) => setTimeout(r, 2500));
+        try {
+          const url =
+            BACKEND +
+            "/api/clover/payment-status?sessionId=" +
+            encodeURIComponent(checkoutSessionId);
+          const s = await fetch(url);
+          if (!s.ok) continue;
+          const data = await s.json();
+          const status = String(data.status || "").toUpperCase();
+
+          if (["PAID", "SUCCESS"].includes(status)) {
+            resolved = true;
+            try {
+              WebBrowser.dismissBrowser();
+            } catch {}
+            return true;
+          }
+          if (["FAILED", "CANCELED", "CANCELLED"].includes(status)) {
+            resolved = true;
+            try {
+              WebBrowser.dismissBrowser();
+            } catch {}
+            return false;
+          }
+        } catch {
+          // reintenta
+        }
       }
-    }
-    return false; // timeout
+      return false; // timeout
+    })();
+
+    // abrir navegador sin bloquear el polling
+    WebBrowser.openBrowserAsync(checkoutPageUrl).catch(() => {});
+
+    const ok = await poll;
+    return ok;
   };
 
   // ---------------------- Checkout ----------------------
@@ -267,7 +297,7 @@ export default function CartScreen({ navigation }) {
     const totalWithTax = getTotalWithTax();
     const session = await createCloverCheckout(totalWithTax);
 
-    if (!session?.checkoutPageUrl || !session?.orderId) {
+    if (!session?.checkoutPageUrl || !session?.checkoutSessionId) {
       Toast.show({
         type: "error",
         text1: "Clover error",
@@ -279,7 +309,7 @@ export default function CartScreen({ navigation }) {
     // 2) Abrir checkout y confirmar
     const paid = await openCloverAndConfirm(
       session.checkoutPageUrl,
-      session.orderId
+      session.checkoutSessionId
     );
 
     if (!paid) {
@@ -329,7 +359,7 @@ export default function CartScreen({ navigation }) {
     </View>
   );
 
-  // Orden en curso
+  // ✅ Orden en curso
   if (orderInProgress && orderData) {
     return (
       <SafeAreaView
@@ -344,7 +374,13 @@ export default function CartScreen({ navigation }) {
           source={require("../assets/images/success.png")}
           style={{ width: 120, height: 120, marginBottom: 20 }}
         />
-        <Text style={{ fontSize: 26, fontWeight: "bold", color: "#4CAF50" }}>
+        <Text
+          style={{
+            fontSize: 26,
+            fontWeight: "bold",
+            color: "#4CAF50",
+          }}
+        >
           ¡Successful order!
         </Text>
         <Text style={{ fontSize: 16, marginTop: 10 }}>
@@ -360,14 +396,11 @@ export default function CartScreen({ navigation }) {
         >
           {orderData.orderNumber}
         </Text>
-
-        {/* 🔥 FIX del Text node */}
-        <Text style={{ fontSize: 16, marginBottom: 10 }}>
+        <Text style={{ fontSize: 16, marginBottom: 10, textAlign: "center" }}>
           🎁 You earned{" "}
           <Text style={{ fontWeight: "bold" }}>{orderData.earnedPoints}</Text>{" "}
           points.
         </Text>
-
         <Text
           style={{
             fontSize: 36,
@@ -492,23 +525,25 @@ export default function CartScreen({ navigation }) {
 // import { supabase } from "../constants/supabase";
 // import Toast from "react-native-toast-message";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
+// import * as WebBrowser from "expo-web-browser";
 
 // const TIMER_KEY = "order_timer_start";
+// // 🔗 Cambia esto por tu dominio en Vercel en producción
+// // const BACKEND = "https://farm-land-deli-web.vercel.app";
+// const BACKEND = "http://192.168.1.5:3000";
 
 // export default function CartScreen({ navigation }) {
 //   const { cartItems, removeFromCart, getTotalItems, getTotalPrice, clearCart } =
 //     useCart();
-
 //   const [orderInProgress, setOrderInProgress] = useState(false);
 //   const [timeLeft, setTimeLeft] = useState(0);
 //   const [orderData, setOrderData] = useState(null);
 
-//   // Limpiar temporizador y datos de orden si no hay orden activa (al entrar)
+//   // ---------------------- Utilidades ----------------------
 //   useEffect(() => {
 //     const checkActiveOrder = async () => {
 //       const savedStartTime = await AsyncStorage.getItem(TIMER_KEY);
 //       if (!savedStartTime) {
-//         // Limpia todo si no hay temporizador (no hay orden en curso)
 //         await AsyncStorage.removeItem("order_info");
 //         setOrderInProgress(false);
 //         setOrderData(null);
@@ -524,17 +559,15 @@ export default function CartScreen({ navigation }) {
 //       if (remaining > 0) {
 //         setTimeLeft(remaining);
 //         setOrderInProgress(true);
-
 //         const savedData = await AsyncStorage.getItem("order_info");
-//         if (savedData) {
-//           setOrderData(JSON.parse(savedData));
-//         }
+//         if (savedData) setOrderData(JSON.parse(savedData));
 
 //         const interval = setInterval(() => {
 //           const updatedElapsed = Math.floor(
 //             (Date.now() - parseInt(savedStartTime)) / 1000
 //           );
 //           const updatedRemaining = 900 - updatedElapsed;
+
 //           if (updatedRemaining <= 0) {
 //             clearInterval(interval);
 //             setOrderInProgress(false);
@@ -547,7 +580,6 @@ export default function CartScreen({ navigation }) {
 
 //         return () => clearInterval(interval);
 //       } else {
-//         // Si el temporizador ya expiró, limpia los datos
 //         await AsyncStorage.removeItem(TIMER_KEY);
 //         await AsyncStorage.removeItem("order_info");
 //         setOrderInProgress(false);
@@ -559,23 +591,23 @@ export default function CartScreen({ navigation }) {
 //     checkActiveOrder();
 //   }, []);
 
+//   // ✅ CORREGIDO: Función formatTime sin template literals problemáticos
 //   const formatTime = (seconds) => {
 //     const min = Math.floor(seconds / 60)
 //       .toString()
 //       .padStart(2, "0");
 //     const sec = (seconds % 60).toString().padStart(2, "0");
-//     return `${min}:${sec}`;
+//     return min + ":" + sec; // ← Cambiado de template literal a concatenación
 //   };
 
 //   const generateOrderNumber = () => {
 //     const now = new Date();
 //     const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
 //     const randomPart = Math.floor(1000 + Math.random() * 9000);
-//     return `ORD-${datePart}-${randomPart}`;
+//     return "ORD-" + datePart + "-" + randomPart; // ← También corregido aquí
 //   };
 
-//   // ----------- Calcular el precio total con TAX incluido ------------
-//   // 6% de tax sobre el subtotal
+//   // 6% TAX
 //   const getTotalWithTax = () => {
 //     return getTotalPrice() * 1.06;
 //   };
@@ -623,7 +655,7 @@ export default function CartScreen({ navigation }) {
 //       return false;
 //     }
 
-//     // Ingredientes y combos
+//     // Ingredientes / extras
 //     const ingredientRows = [];
 //     insertedOrders.forEach((order, index) => {
 //       const product = items[index];
@@ -667,7 +699,7 @@ export default function CartScreen({ navigation }) {
 //       .update({ points: newTotalPoints })
 //       .eq("id", user.id);
 
-//     // Guardar estado de orden y temporizador
+//     // Guardar estado de orden y temporizador 15 min
 //     await AsyncStorage.setItem(TIMER_KEY, Date.now().toString());
 //     await AsyncStorage.setItem(
 //       "order_info",
@@ -677,9 +709,53 @@ export default function CartScreen({ navigation }) {
 //     return { orderNumber, earnedPoints };
 //   };
 
-//   // Ajuste: limpiar temporizador y orden previa antes de guardar la nueva orden
+//   // ---------------------- 🔗 Integración Clover ----------------------
+//   // 1) Crear sesión Hosted Checkout en tu backend
+//   const createCloverCheckout = async (totalUSD) => {
+//     try {
+//       const url = BACKEND + "/api/clover/hco/create";
+//       const r = await fetch(url, {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           amount: Number(totalUSD.toFixed(2)),
+//           currency: "USD",
+//           referenceId: generateOrderNumber(),
+//         }),
+//       });
+//       if (!r.ok) return null;
+//       return await r.json(); // { checkoutId, orderId, checkoutPageUrl }
+//     } catch (e) {
+//       return null;
+//     }
+//   };
+
+//   // 2) Abrir Clover y confirmar estado
+//   const openCloverAndConfirm = async (checkoutPageUrl, orderId) => {
+//     await WebBrowser.openBrowserAsync(checkoutPageUrl);
+//     const started = Date.now();
+
+//     while (Date.now() - started < 90_000) {
+//       await new Promise((r) => setTimeout(r, 2500));
+//       try {
+//         const url = BACKEND + "/api/clover/payment-status?orderId=" + orderId;
+//         const s = await fetch(url);
+//         if (!s.ok) continue;
+
+//         const data = await s.json();
+//         const status = String(data.status || "").toUpperCase();
+
+//         if (["PAID", "SUCCESS", "PAID_SUCCESS"].includes(status)) return true;
+//         if (["FAILED", "CANCELED", "CANCELLED"].includes(status)) return false;
+//       } catch {
+//         // reintenta en el siguiente ciclo
+//       }
+//     }
+//     return false; // timeout
+//   };
+
+//   // ---------------------- Checkout ----------------------
 //   const handleCheckout = async () => {
-//     // Limpiar temporizador y orden anterior
 //     await AsyncStorage.removeItem(TIMER_KEY);
 //     await AsyncStorage.removeItem("order_info");
 
@@ -699,6 +775,35 @@ export default function CartScreen({ navigation }) {
 
 //     if (!confirmed) return;
 
+//     // 1) Crear checkout Clover
+//     const totalWithTax = getTotalWithTax();
+//     const session = await createCloverCheckout(totalWithTax);
+
+//     if (!session?.checkoutPageUrl || !session?.orderId) {
+//       Toast.show({
+//         type: "error",
+//         text1: "Clover error",
+//         text2: "Could not start payment.",
+//       });
+//       return;
+//     }
+
+//     // 2) Abrir checkout y confirmar
+//     const paid = await openCloverAndConfirm(
+//       session.checkoutPageUrl,
+//       session.orderId
+//     );
+
+//     if (!paid) {
+//       Toast.show({
+//         type: "error",
+//         text1: "Payment not completed",
+//         text2: "Please try again.",
+//       });
+//       return;
+//     }
+
+//     // 3) Guardar orden en Supabase
 //     const result = await saveOrderOnSupabase(cartItems);
 //     if (result) {
 //       clearCart();
@@ -706,6 +811,7 @@ export default function CartScreen({ navigation }) {
 //     }
 //   };
 
+//   // ---------------------- UI ----------------------
 //   const renderItem = ({ item }) => (
 //     <View
 //       style={{
@@ -735,7 +841,7 @@ export default function CartScreen({ navigation }) {
 //     </View>
 //   );
 
-//   // Orden en curso
+//   // ✅ CORREGIDO: Orden en curso - Todo el texto está dentro de componentes Text
 //   if (orderInProgress && orderData) {
 //     return (
 //       <SafeAreaView
@@ -750,7 +856,13 @@ export default function CartScreen({ navigation }) {
 //           source={require("../assets/images/success.png")}
 //           style={{ width: 120, height: 120, marginBottom: 20 }}
 //         />
-//         <Text style={{ fontSize: 26, fontWeight: "bold", color: "#4CAF50" }}>
+//         <Text
+//           style={{
+//             fontSize: 26,
+//             fontWeight: "bold",
+//             color: "#4CAF50",
+//           }}
+//         >
 //           ¡Successful order!
 //         </Text>
 //         <Text style={{ fontSize: 16, marginTop: 10 }}>
@@ -766,7 +878,7 @@ export default function CartScreen({ navigation }) {
 //         >
 //           {orderData.orderNumber}
 //         </Text>
-//         <Text style={{ fontSize: 16, marginBottom: 10 }}>
+//         <Text style={{ fontSize: 16, marginBottom: 10, textAlign: "center" }}>
 //           🎁 You earned{" "}
 //           <Text style={{ fontWeight: "bold" }}>{orderData.earnedPoints}</Text>{" "}
 //           points.
