@@ -123,18 +123,11 @@ export default function CartScreen({ navigation }) {
 
   const createCloverCheckout = async (totalUSD) => {
     try {
-      console.log("🔄 Creando checkout con Clover...");
-      console.log("💰 Total USD:", totalUSD);
-      console.log("🌐 Backend URL:", BACKEND);
-
       const url = `${BACKEND}/api/clover/hco/create`;
       const requestBody = {
         amount: Number(totalUSD.toFixed(2)),
         referenceId: generateOrderNumber(),
       };
-
-      console.log("📤 Request URL:", url);
-      console.log("📦 Request Body:", requestBody);
 
       const response = await fetch(url, {
         method: "POST",
@@ -145,19 +138,12 @@ export default function CartScreen({ navigation }) {
         body: JSON.stringify(requestBody),
       });
 
-      console.log("📥 Response status:", response.status);
-      console.log("📥 Response ok:", response.ok);
-
       const responseText = await response.text();
-      console.log("📄 Raw response:", responseText);
 
       if (!response.ok) {
-        console.error("❌ Error response:", responseText);
-
         // Intentar parsear el error
         try {
           const errorData = JSON.parse(responseText);
-          console.error("❌ Error parseado:", errorData);
 
           // Mostrar mensaje de error específico
           const errorMessage =
@@ -166,7 +152,7 @@ export default function CartScreen({ navigation }) {
 
           Toast.show({
             type: "error",
-            text1: "Error de pago",
+            text1: "Error in payment",
             text2: `${errorMessage} ${errorDetails}`.trim(),
             position: "top",
             visibilityTime: 5000,
@@ -205,11 +191,10 @@ export default function CartScreen({ navigation }) {
 
       // Validar que tenemos la URL del checkout
       if (!data.checkoutPageUrl && !data.checkoutUrl && !data.href) {
-        console.error("❌ No se encontró URL de checkout en:", data);
         Toast.show({
           type: "error",
           text1: "Error de Clover",
-          text2: "No se recibió la URL de pago",
+          text2: "The payment URL was not received.",
           position: "top",
           visibilityTime: 5000,
         });
@@ -224,7 +209,7 @@ export default function CartScreen({ navigation }) {
       Toast.show({
         type: "error",
         text1: "Error de conexión",
-        text2: error.message || "No se pudo conectar con el servidor",
+        text2: error.message || "Could not connect to the server",
         position: "top",
         visibilityTime: 5000,
       });
@@ -235,7 +220,7 @@ export default function CartScreen({ navigation }) {
 
   const handleCheckout = async () => {
     if (isProcessingPayment) {
-      console.log("⚠️ Ya hay un pago en proceso...");
+      console.log("⚠️ A payment is already in process....");
       return;
     }
 
@@ -244,16 +229,16 @@ export default function CartScreen({ navigation }) {
 
     const confirmed =
       Platform.OS === "web"
-        ? window.confirm("¿Deseas confirmar y enviar tu pedido?")
+        ? window.confirm("Would you like to confirm and submit your order?")
         : await new Promise((resolve) =>
-            Alert.alert("Confirmación", "¿Confirmar y enviar tu pedido?", [
+            Alert.alert("Confirmation", "Confirm and send your order?", [
               {
-                text: "Cancelar",
+                text: "Cancel",
                 style: "cancel",
                 onPress: () => resolve(false),
               },
               {
-                text: "Confirmar",
+                text: "Confirm",
                 onPress: () => resolve(true),
               },
             ])
@@ -264,16 +249,13 @@ export default function CartScreen({ navigation }) {
     setIsProcessingPayment(true);
 
     try {
-      console.log("🛒 Iniciando proceso de checkout...");
-
       const totalWithTax = getTotalWithTax();
-      console.log("💰 Total con impuestos:", totalWithTax);
 
       // Mostrar toast de procesando
       Toast.show({
         type: "info",
-        text1: "Procesando",
-        text2: "Conectando con el servidor de pagos...",
+        text1: "Processing",
+        text2: "Connecting to the payment server...",
         position: "top",
         autoHide: false,
       });
@@ -284,7 +266,7 @@ export default function CartScreen({ navigation }) {
       Toast.hide();
 
       if (!session) {
-        console.error("❌ No se recibió sesión de pago");
+        console.error("❌ No payment session received");
         return;
       }
 
@@ -295,24 +277,17 @@ export default function CartScreen({ navigation }) {
         session.href ||
         session.raw?.href;
 
-      console.log("🔗 URL de checkout extraída:", checkoutUrl);
-
       if (!checkoutUrl) {
-        console.error(
-          "❌ No se encontró URL de checkout en la respuesta:",
-          session
-        );
+        console.error("❌ No checkout URL found in the response:", session);
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: "No se pudo obtener la URL de pago",
+          text2: "The payment URL could not be obtained.",
           position: "top",
           visibilityTime: 5000,
         });
         return;
       }
-
-      console.log("🌐 Abriendo navegador con URL:", checkoutUrl);
 
       // Configurar y abrir el WebBrowser
       const browserResult = await WebBrowser.openBrowserAsync(checkoutUrl, {
@@ -329,25 +304,22 @@ export default function CartScreen({ navigation }) {
         enableDefaultShare: false,
       });
 
-      console.log("📱 Resultado del navegador:", browserResult);
-
       // Manejar el resultado del navegador
       if (browserResult.type === "cancel") {
         console.log("❌ Usuario canceló el pago");
         Toast.show({
           type: "info",
-          text1: "Pago cancelado",
-          text2: "Puedes intentar de nuevo cuando quieras",
+          text1: "Payment canceled",
+          text2: "You can try again whenever you want.",
           position: "top",
           visibilityTime: 3000,
         });
       } else if (browserResult.type === "dismiss") {
-        console.log("ℹ️ Navegador cerrado");
         // Aquí podrías verificar el estado del pago con el backend
         Toast.show({
           type: "success",
-          text1: "Proceso completado",
-          text2: "Verifica tu correo para la confirmación",
+          text1: "Process completed",
+          text2: "Check your email for confirmation.",
           position: "top",
           visibilityTime: 3000,
         });
@@ -375,7 +347,7 @@ export default function CartScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
-        Carrito ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
+        Cart ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
       </Text>
 
       {cartItems.length === 0 ? (
@@ -389,7 +361,7 @@ export default function CartScreen({ navigation }) {
         >
           <Icon.ShoppingBag width={90} height={90} stroke="#9CA3AF" />
           <Text style={{ marginTop: 20, fontSize: 18, color: "#6B7280" }}>
-            Tu carrito está vacío
+            Your cart is empty
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
@@ -402,7 +374,7 @@ export default function CartScreen({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-              Ir al Inicio
+              Home
             </Text>
           </TouchableOpacity>
         </View>
