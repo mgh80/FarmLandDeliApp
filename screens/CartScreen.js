@@ -18,7 +18,30 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as WebBrowser from "expo-web-browser";
 
 const TIMER_KEY = "order_timer_start";
-const BACKEND = "http://192.168.1.5:3000";
+
+// Configuración dinámica del backend
+const getBackendUrl = () => {
+  // Si estamos en web
+  if (Platform.OS === "web") {
+    // En desarrollo web local
+    if (window.location.hostname === "localhost") {
+      return "http://localhost:3000";
+    }
+    // En producción web (Vercel)
+    return "https://farm-land-deli-web.vercel.app";
+  }
+
+  // Para apps móviles
+  if (__DEV__) {
+    // Desarrollo móvil
+    return "http://192.168.1.5:3000";
+  }
+
+  // Producción móvil
+  return "https://farm-land-deli-web.vercel.app";
+};
+
+const BACKEND = getBackendUrl();
 
 export default function CartScreen({ navigation }) {
   const { cartItems, removeFromCart, getTotalItems, getTotalPrice, clearCart } =
@@ -100,36 +123,112 @@ export default function CartScreen({ navigation }) {
 
   const createCloverCheckout = async (totalUSD) => {
     try {
-      console.log("🔄 Creando checkout con Clover...", { totalUSD });
+      console.log("🔄 Creando checkout con Clover...");
+      console.log("💰 Total USD:", totalUSD);
+      console.log("🌐 Backend URL:", BACKEND);
 
-      const url = BACKEND + "/api/clover/hco/create";
+      const url = `${BACKEND}/api/clover/hco/create`;
       const requestBody = {
         amount: Number(totalUSD.toFixed(2)),
         referenceId: generateOrderNumber(),
       };
 
-      console.log("📤 Request a backend:", { url, requestBody });
+      console.log("📤 Request URL:", url);
+      console.log("📦 Request Body:", requestBody);
 
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(requestBody),
       });
 
       console.log("📥 Response status:", response.status);
+      console.log("📥 Response ok:", response.ok);
+
+      const responseText = await response.text();
+      console.log("📄 Raw response:", responseText);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
+        console.error("❌ Error response:", responseText);
+
+        // Intentar parsear el error
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error("❌ Error parseado:", errorData);
+
+          // Mostrar mensaje de error específico
+          const errorMessage =
+            errorData.error || errorData.message || "Error desconocido";
+          const errorDetails = errorData.details || "";
+
+          Toast.show({
+            type: "error",
+            text1: "Error de pago",
+            text2: `${errorMessage} ${errorDetails}`.trim(),
+            position: "top",
+            visibilityTime: 5000,
+          });
+
+          return null;
+        } catch (e) {
+          console.error("❌ No se pudo parsear el error:", e);
+          Toast.show({
+            type: "error",
+            text1: "Error de conexión",
+            text2: `Error ${response.status}: ${response.statusText}`,
+            position: "top",
+            visibilityTime: 5000,
+          });
+          return null;
+        }
+      }
+
+      // Parsear respuesta exitosa
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("✅ Response data parseada:", data);
+      } catch (e) {
+        console.error("❌ Error parseando respuesta exitosa:", e);
+        Toast.show({
+          type: "error",
+          text1: "Error de formato",
+          text2: "La respuesta del servidor no es válida",
+          position: "top",
+          visibilityTime: 5000,
+        });
         return null;
       }
 
-      const data = await response.json();
-      console.log("✅ Response data:", data);
+      // Validar que tenemos la URL del checkout
+      if (!data.checkoutPageUrl && !data.checkoutUrl && !data.href) {
+        console.error("❌ No se encontró URL de checkout en:", data);
+        Toast.show({
+          type: "error",
+          text1: "Error de Clover",
+          text2: "No se recibió la URL de pago",
+          position: "top",
+          visibilityTime: 5000,
+        });
+        return null;
+      }
 
       return data;
     } catch (error) {
       console.error("💥 Error en createCloverCheckout:", error);
+      console.error("💥 Stack:", error.stack);
+
+      Toast.show({
+        type: "error",
+        text1: "Error de conexión",
+        text2: error.message || "No se pudo conectar con el servidor",
+        position: "top",
+        visibilityTime: 5000,
+      });
+
       return null;
     }
   };
@@ -145,15 +244,18 @@ export default function CartScreen({ navigation }) {
 
     const confirmed =
       Platform.OS === "web"
-        ? window.confirm("Do you want to confirm and send your order?")
+        ? window.confirm("¿Deseas confirmar y enviar tu pedido?")
         : await new Promise((resolve) =>
-            Alert.alert("Confirmation", "Confirm and send your order?", [
+            Alert.alert("Confirmación", "¿Confirmar y enviar tu pedido?", [
               {
-                text: "Cancel",
+                text: "Cancelar",
                 style: "cancel",
                 onPress: () => resolve(false),
               },
-              { text: "Confirm", onPress: () => resolve(true) },
+              {
+                text: "Confirmar",
+                onPress: () => resolve(true),
+              },
             ])
           );
 
@@ -167,63 +269,103 @@ export default function CartScreen({ navigation }) {
       const totalWithTax = getTotalWithTax();
       console.log("💰 Total con impuestos:", totalWithTax);
 
+      // Mostrar toast de procesando
+      Toast.show({
+        type: "info",
+        text1: "Procesando",
+        text2: "Conectando con el servidor de pagos...",
+        position: "top",
+        autoHide: false,
+      });
+
       const session = await createCloverCheckout(totalWithTax);
-      console.log("📋 Session recibida:", session);
+
+      // Ocultar toast de procesando
+      Toast.hide();
 
       if (!session) {
-        Toast.show({
-          type: "error",
-          text1: "Error de conexión",
-          text2: "No se pudo conectar con el servidor de pagos.",
-        });
+        console.error("❌ No se recibió sesión de pago");
         return;
       }
 
-      // 🔧 CORREGIDO: Extraer correctamente la URL del checkout
-      const checkoutUrl = session.checkoutPageUrl || session.raw?.href;
-      console.log("🔗 URL de checkout:", checkoutUrl);
+      // Extraer la URL del checkout
+      const checkoutUrl =
+        session.checkoutPageUrl ||
+        session.checkoutUrl ||
+        session.href ||
+        session.raw?.href;
+
+      console.log("🔗 URL de checkout extraída:", checkoutUrl);
 
       if (!checkoutUrl) {
-        console.error("❌ No se encontró URL de checkout en:", session);
+        console.error(
+          "❌ No se encontró URL de checkout en la respuesta:",
+          session
+        );
         Toast.show({
           type: "error",
-          text1: "Error de Clover",
-          text2: "No se pudo obtener la URL de pago.",
+          text1: "Error",
+          text2: "No se pudo obtener la URL de pago",
+          position: "top",
+          visibilityTime: 5000,
         });
         return;
       }
 
-      console.log("🌐 Abriendo WebBrowser con URL:", checkoutUrl);
+      console.log("🌐 Abriendo navegador con URL:", checkoutUrl);
 
-      // 🔧 MEJORADO: Configuración del WebBrowser
-      const result = await WebBrowser.openBrowserAsync(checkoutUrl, {
-        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FORM_SHEET,
+      // Configurar y abrir el WebBrowser
+      const browserResult = await WebBrowser.openBrowserAsync(checkoutUrl, {
+        presentationStyle:
+          Platform.OS === "ios"
+            ? WebBrowser.WebBrowserPresentationStyle.FORM_SHEET
+            : WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
         controlsColor: "#FFA500",
         toolbarColor: "#FFA500",
         secondaryToolbarColor: "#FFA500",
         showInRecents: false,
+        showTitle: true,
+        enableBarCollapsing: false,
+        enableDefaultShare: false,
       });
 
-      console.log("📱 Resultado del WebBrowser:", result);
+      console.log("📱 Resultado del navegador:", browserResult);
 
-      // Opcional: Manejar el resultado del WebBrowser
-      if (result.type === "cancel") {
+      // Manejar el resultado del navegador
+      if (browserResult.type === "cancel") {
         console.log("❌ Usuario canceló el pago");
         Toast.show({
           type: "info",
           text1: "Pago cancelado",
-          text2: "Puedes intentar de nuevo cuando quieras.",
+          text2: "Puedes intentar de nuevo cuando quieras",
+          position: "top",
+          visibilityTime: 3000,
         });
-      } else if (result.type === "dismiss") {
-        console.log("ℹ️ WebBrowser fue cerrado");
-        // Aquí podrías verificar el estado del pago
+      } else if (browserResult.type === "dismiss") {
+        console.log("ℹ️ Navegador cerrado");
+        // Aquí podrías verificar el estado del pago con el backend
+        Toast.show({
+          type: "success",
+          text1: "Proceso completado",
+          text2: "Verifica tu correo para la confirmación",
+          position: "top",
+          visibilityTime: 3000,
+        });
+
+        // Opcional: Limpiar el carrito si el pago fue exitoso
+        // clearCart();
+        // navigation.navigate("Home");
       }
     } catch (error) {
       console.error("💥 Error en handleCheckout:", error);
+      console.error("💥 Stack:", error.stack);
+
       Toast.show({
         type: "error",
         text1: "Error",
         text2: error.message || "No se pudo procesar el pago",
+        position: "top",
+        visibilityTime: 5000,
       });
     } finally {
       setIsProcessingPayment(false);
@@ -233,7 +375,7 @@ export default function CartScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
-        Cart ({getTotalItems()} product{getTotalItems() !== 1 ? "s" : ""})
+        Carrito ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
       </Text>
 
       {cartItems.length === 0 ? (
@@ -247,7 +389,7 @@ export default function CartScreen({ navigation }) {
         >
           <Icon.ShoppingBag width={90} height={90} stroke="#9CA3AF" />
           <Text style={{ marginTop: 20, fontSize: 18, color: "#6B7280" }}>
-            Your cart is empty.
+            Tu carrito está vacío
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
@@ -260,7 +402,7 @@ export default function CartScreen({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-              Go to Home
+              Ir al Inicio
             </Text>
           </TouchableOpacity>
         </View>
@@ -293,7 +435,7 @@ export default function CartScreen({ navigation }) {
                     Cantidad: {item.quantity}
                   </Text>
                   <Text style={{ color: "#333" }}>
-                    Price: ${(item.price * item.quantity * 1.06).toFixed(2)}
+                    Precio: ${(item.price * item.quantity * 1.06).toFixed(2)}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => removeFromCart(item.id)}>
@@ -338,12 +480,13 @@ export default function CartScreen({ navigation }) {
                   fontWeight: "bold",
                 }}
               >
-                {isProcessingPayment ? "Processing..." : "Check out"}
+                {isProcessingPayment ? "Procesando..." : "Pagar"}
               </Text>
             </TouchableOpacity>
           </Animatable.View>
         </>
       )}
+      <Toast />
     </SafeAreaView>
   );
 }
