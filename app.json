@@ -1,35 +1,35 @@
 {
-  "expo": {
-    "name": "FarmlandApp",
-    "slug": "FarmlandApp",
-    "owner": "farmlanddeli",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/images/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "bundleIdentifier": "com.farmland.app",
-      "supportsTablet": true
-    },
-    "android": {
-      "package": "com.farmland.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+  "cli": {
+    "version": ">= 5.2.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "cache": {
+        "disabled": true
+      },
+      "env": {
+        "EAS_NO_VCS": "1",
+        "EXPO_SKIP_AUTOLINKING": "1"
       }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "6d53e333-bbdb-427b-abd3-05d2869c9373"
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "cache": {
+        "disabled": true
       }
-    },
-    "scheme": "farmlandapp"
+    }
+  },
+  "submit": {
+    "production": {}
   }
 }
