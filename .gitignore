@@ -35,3 +35,8 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Android build files
+*.apk
+android/app/build/
+android/app/release/
