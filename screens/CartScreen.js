@@ -347,7 +347,7 @@ export default function CartScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
-        Cart ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
+        Cart ({getTotalItems()} product{getTotalItems() !== 1 ? "s" : ""})
       </Text>
 
       {cartItems.length === 0 ? (
@@ -404,10 +404,10 @@ export default function CartScreen({ navigation }) {
                     {item.name}
                   </Text>
                   <Text style={{ color: "#555" }}>
-                    Cantidad: {item.quantity}
+                    Quantity: {item.quantity}
                   </Text>
                   <Text style={{ color: "#333" }}>
-                    Precio: ${(item.price * item.quantity * 1.06).toFixed(2)}
+                    Price: ${(item.price * item.quantity * 1.06).toFixed(2)}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => removeFromCart(item.id)}>
@@ -452,7 +452,7 @@ export default function CartScreen({ navigation }) {
                   fontWeight: "bold",
                 }}
               >
-                {isProcessingPayment ? "Procesando..." : "Pagar"}
+                {isProcessingPayment ? "Processing..." : "Pay"}
               </Text>
             </TouchableOpacity>
           </Animatable.View>
