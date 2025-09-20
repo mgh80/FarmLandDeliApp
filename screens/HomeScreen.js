@@ -309,6 +309,18 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                onPress={() => {
+                  setShowSidebar(false);
+                  navigation.navigate("CouponHistory");
+                }}
+                style={{ paddingVertical: 10 }}
+              >
+                <Text style={{ fontSize: 16, color: "#1F2937" }}>
+                  🎟️ My Coupons
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 onPress={handleLogout}
                 style={{
                   marginTop: "auto",

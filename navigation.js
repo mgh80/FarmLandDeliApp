@@ -11,6 +11,7 @@ import CartScreen from "./screens/CartScreen";
 import OrderConfirmationScreen from "./screens/OrderConfirmationScreen";
 import OrderHistoryScreen from "./screens/OrderHistoryScreen";
 import MyPointsScreen from "./screens/MyPointsScreen";
+import CouponHistoryScreen from "./screens/CouponHistoryScreen";
 
 const linking = {
   prefixes: ["http://localhost:8081"],
@@ -20,6 +21,7 @@ const linking = {
       Login: "Login",
       Register: "Register",
       Products: "Products",
+      Coupons: "Coupons",
     },
   },
 };
@@ -45,6 +47,10 @@ export default function Navigation() {
         <Stack.Screen
           name="OrderConfirmation"
           component={OrderConfirmationScreen}
+        ></Stack.Screen>
+        <Stack.Screen
+          name="CouponHistory"
+          component={CouponHistoryScreen}
         ></Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
