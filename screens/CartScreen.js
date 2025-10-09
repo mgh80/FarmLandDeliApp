@@ -21,25 +21,38 @@ const TIMER_KEY = "order_timer_start";
 
 // Configuración dinámica del backend
 const getBackendUrl = () => {
-  // Si estamos en web
+  // Si estás en entorno web (navegador)
   if (Platform.OS === "web") {
-    // En desarrollo web local
-    if (window.location.hostname === "localhost") {
-      return "http://localhost:3000";
+    if (window.location.hostname.includes("localhost")) {
+      return "http://localhost:3000"; // solo para pruebas locales
     }
-    // En producción web (Vercel)
     return "https://farm-land-deli-web.vercel.app";
   }
 
-  // Para apps móviles
-  if (__DEV__) {
-    // Desarrollo móvil
-    return "http://192.168.1.5:3000";
-  }
-
-  // Producción móvil
+  // Si es móvil (Expo Go o build)
   return "https://farm-land-deli-web.vercel.app";
 };
+
+// const getBackendUrl = () => {
+//   // Si estamos en web
+//   if (Platform.OS === "web") {
+//     // En desarrollo web local
+//     if (window.location.hostname === "localhost") {
+//       return "http://localhost:3000";
+//     }
+//     // En producción web (Vercel)
+//     return "https://farm-land-deli-web.vercel.app";
+//   }
+
+//   // Para apps móviles
+//   if (__DEV__) {
+//     // Desarrollo móvil
+//     return "http://192.168.1.5:3000";
+//   }
+
+//   // Producción móvil
+//   return "https://farm-land-deli-web.vercel.app";
+// };
 
 const BACKEND = getBackendUrl();
 
