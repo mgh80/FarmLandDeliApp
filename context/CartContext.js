@@ -26,6 +26,15 @@ export const CartProvider = ({ children }) => {
     setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
   };
 
+  // ✅ Nueva función para actualizar cantidad manualmente
+  const updateQuantity = (id, newQuantity) => {
+    setCartItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
   const clearCart = () => setCartItems([]);
 
   const getTotalItems = () =>
@@ -40,6 +49,7 @@ export const CartProvider = ({ children }) => {
         cartItems,
         addToCart,
         removeFromCart,
+        updateQuantity, // 👈 aquí se exporta
         clearCart,
         getTotalItems,
         getTotalPrice,

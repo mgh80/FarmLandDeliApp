@@ -13,6 +13,7 @@ import OrderHistoryScreen from "./screens/OrderHistoryScreen";
 import MyPointsScreen from "./screens/MyPointsScreen";
 import CouponHistoryScreen from "./screens/CouponHistoryScreen";
 import TermsScreen from "./screens/TermsScreen";
+import AuthorizePaymentScreen from "./screens/AuthorizePaymentScreen";
 
 const linking = {
   prefixes: ["http://localhost:8081"],
@@ -42,6 +43,10 @@ export default function Navigation() {
         <Stack.Screen name="Cart" component={CartScreen}></Stack.Screen>
         <Stack.Screen name="Points" component={MyPointsScreen}></Stack.Screen>
         <Stack.Screen name="Terms" component={TermsScreen}></Stack.Screen>
+        <Stack.Screen
+          name="AuthorizePaymentScreen"
+          component={AuthorizePaymentScreen}
+        ></Stack.Screen>
         <Stack.Screen
           name="OrderHistory"
           component={OrderHistoryScreen}
