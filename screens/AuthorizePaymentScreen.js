@@ -45,7 +45,6 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
   useEffect(() => {
     const handleDeepLink = (event) => {
       const url = event.url;
-      console.log("🔗 Deep link recibido:", url);
 
       if (url.includes("order-confirmation")) {
         const params = {};
@@ -82,9 +81,6 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
       try {
         const referenceId =
           route?.params?.referenceId || `FD-${Date.now()}-${amount.toFixed(2)}`;
-        console.log("🧾 Referencia generada:", referenceId);
-        console.log("🧍 Usuario logueado:", userId);
-        console.log("🛍️ Enviando carrito al backend:", cartFromRoute);
 
         // 🧹 Limpiar carrito (solo datos necesarios)
         const cleanCartItems = (cartFromRoute || []).map((item) => ({
@@ -121,8 +117,6 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
         setCheckoutUrl(data.checkoutUrl);
         setReferenceId(referenceId);
         setIsLoading(false);
-
-        console.log("✅ Transacción creada correctamente:", data);
       } catch (err) {
         console.error("💥 Error creando transacción:", err);
         setError(err.message);
@@ -159,11 +153,8 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
   // ===========================
   const handleNavigationStateChange = async (navState) => {
     const { url } = navState;
-    console.log("📍 Navegación detectada:", url);
 
     if (url.includes("verify-payment") || url.includes("order-confirmation")) {
-      console.log("✅ Redirección de pago detectada");
-
       try {
         const urlObj = new URL(url);
         const transId = urlObj.searchParams.get("transId");
@@ -173,8 +164,8 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
         if (transId || referenceIdParam) {
           Toast.show({
             type: "info",
-            text1: "Verificando pago",
-            text2: "Por favor espera...",
+            text1: "Verifying payment",
+            text2: "Please wait a moment...",
             position: "top",
             autoHide: false,
           });
@@ -187,7 +178,6 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
           const contentType = verifyResponse.headers.get("content-type");
 
           if (contentType && contentType.includes("text/html")) {
-            console.log("📄 Respuesta HTML recibida, esperando deep link...");
             return;
           }
 
@@ -195,11 +185,10 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
           Toast.hide();
 
           if (result.status === "paid") {
-            console.log("✅ Pago confirmado");
             Toast.show({
               type: "success",
-              text1: "¡Pago exitoso!",
-              text2: `Ganaste ${result.pointsEarned || 0} puntos 🎉`,
+              text1: "Successfull payment!",
+              text2: `You won ${result.pointsEarned || 0} points 🎉`,
               position: "top",
               visibilityTime: 3000,
             });
@@ -211,7 +200,6 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
               total: result.total || amount,
             });
           } else {
-            console.log("⚠️ Pago no confirmado:", result);
             Toast.show({
               type: "warning",
               text1: "Pago pendiente",
@@ -242,7 +230,7 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#FFA500" />
-        <Text style={styles.loadingText}>Conectando con Authorize.Net...</Text>
+        <Text style={styles.loadingText}>Conecting with Authorize.Net...</Text>
       </View>
     );
 
@@ -254,7 +242,7 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>Volver</Text>
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -306,8 +294,8 @@ export default function AuthorizePaymentScreen({ route, navigation }) {
         fontFamily: "sans-serif",
       }}
     >
-      <h2>Redirigiendo a Authorize.Net...</h2>
-      <p>Por favor espera un momento.</p>
+      <h2>Redirecting to Authorize.Net...</h2>
+      <p>Please wait a moment...</p>
     </div>
   );
 }

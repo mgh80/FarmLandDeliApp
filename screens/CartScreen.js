@@ -36,10 +36,8 @@ export default function CartScreen({ navigation }) {
         if (error) {
           console.error("⚠️ Error obteniendo usuario:", error);
         } else if (data?.user) {
-          console.log("✅ Usuario autenticado:", data.user.id);
           setUserId(data.user.id);
         } else {
-          console.log("⚠️ No hay usuario autenticado");
         }
       } catch (err) {
         console.error("💥 Error al obtener usuario:", err);
@@ -55,23 +53,23 @@ export default function CartScreen({ navigation }) {
 
     if (!userId) {
       Alert.alert(
-        "Inicio de sesión requerido",
-        "Debes iniciar sesión para completar tu compra."
+        "Login required",
+        "You must log in to complete your purchase.."
       );
       return;
     }
 
     const confirmed =
       Platform.OS === "web"
-        ? window.confirm("¿Deseas confirmar y enviar tu pedido?")
+        ? window.confirm("¿Would you like to confirm and send your order??")
         : await new Promise((resolve) =>
-            Alert.alert("Confirmación", "¿Confirmar y enviar tu pedido?", [
+            Alert.alert("Confirmation", "¿Confirm and send your order?", [
               {
-                text: "Cancelar",
+                text: "Cancel",
                 style: "cancel",
                 onPress: () => resolve(false),
               },
-              { text: "Confirmar", onPress: () => resolve(true) },
+              { text: "Confirm", onPress: () => resolve(true) },
             ])
           );
 
@@ -97,7 +95,7 @@ export default function CartScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: "#F9FAFB" }}>
       <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
-        Carrito ({getTotalItems()} producto{getTotalItems() !== 1 ? "s" : ""})
+        Cart ({getTotalItems()} product{getTotalItems() !== 1 ? "s" : ""})
       </Text>
 
       {/* ✅ Mostrar mensaje si el carrito está vacío */}
@@ -112,7 +110,7 @@ export default function CartScreen({ navigation }) {
         >
           <Icon.ShoppingBag width={90} height={90} stroke="#9CA3AF" />
           <Text style={{ marginTop: 20, fontSize: 18, color: "#6B7280" }}>
-            Tu carrito está vacío
+            Your cart is empty
           </Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("Home")}
@@ -125,7 +123,7 @@ export default function CartScreen({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-              Ir al Inicio
+              Return to Home
             </Text>
           </TouchableOpacity>
         </View>
@@ -252,7 +250,7 @@ export default function CartScreen({ navigation }) {
                   fontWeight: "bold",
                 }}
               >
-                {isProcessing ? "Procesando..." : "Pagar"}
+                {isProcessing ? "Processing..." : "Pay"}
               </Text>
             </TouchableOpacity>
           </Animatable.View>
